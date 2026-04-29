@@ -8,27 +8,25 @@ def _size(obj) -> int:
     return len(json.dumps(obj, separators=(',', ':')))
 
 
-def _build_entry(plane: dict) -> list:
-    # 11 fixed fields. Absent optional fields use 0 (not null) — TRMNL strips null from
-    # JSON arrays, which would collapse indices and shift every field after the first absent one.
-    # [0]=callsign [1]=type [2]=alt [3]=spd [4]=trk [5]=src [6]=lat [7]=lon
-    # [8]=origin   [9]=dest [10]=desc
+def _build_entry(plane: dict) -> str:
+    # CSV string: callsign,type,alt,spd,trk,src,lat,lon,origin,dest,desc
+    # Fixed 11 fields; empty string fields cost 0 chars and are immune to TRMNL null-stripping.
     ac_type = (plane.get('type', '') or '').strip()
     if ac_type.lower() in ('adsb_icao', 'mode_s', 'tis-b', 'ads-r', 'unknown', ''):
         ac_type = ''
-    return [
-        plane.get('callsign', '') or '',  # 0
-        ac_type or '',                    # 1
-        plane.get('altitude', 0) or 0,         # 2
-        plane.get('speed', 0) or 0,            # 3
-        plane.get('track', 0) or 0,            # 4
-        plane.get('source', 0) or 0,           # 5
-        round(plane['lat'], 4) or 9,           # 6
-        round(plane['lon'], 4) or 0,           # 7
-        plane.get('origin', '') or '',         # 8 — 0 if absent
-        plane.get('dest', '') or '',           # 9 — 0 if absent
-        plane.get('desc', '') or '',           # 10 — 0 if absent
-    ]
+    return ','.join([
+        plane.get('callsign', '') or '',
+        ac_type,
+        str(plane.get('altitude', 0) or 0),
+        str(plane.get('speed', 0) or 0),
+        str(plane.get('track', 0) or 0),
+        str(plane.get('source', 0) or 0),
+        str(round(plane['lat'], 4)),
+        str(round(plane['lon'], 4)),
+        plane.get('origin', '') or '',
+        plane.get('dest', '') or '',
+        plane.get('desc', '') or '',
+    ])
 
 
 def build_payload(state, tier: str = 'standard') -> dict:

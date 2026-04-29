@@ -121,7 +121,10 @@
   if ({{ view | default: 1 }} === 4) return;
 
   var inst     = '{{ inst }}';
-  var ac       = {{ ac | json }};
+  var ac = ({{ ac | json }}).map(function(s) {
+    var f = s.split(',');
+    return [f[0], f[1], f[2]?+f[2]:0, f[3]?+f[3]:0, f[4]?+f[4]:0, +f[5]||0, parseFloat(f[6]), parseFloat(f[7]), f[8], f[9], f[10]];
+  });
   var fc       = {{ fc | json }};
   var unit     = '{{ trmnl.plugin_settings.custom_fields_values.unit | default: "imperial" }}';
   var darkMode = '{{ trmnl.plugin_settings.dark_mode }}' === 'yes';
@@ -255,7 +258,7 @@
 
   function getIconKey(p) {
     var type = (p[1] || '').toUpperCase();
-    var desc = (p[11] || '').toLowerCase();
+    var desc = (p[10] || '').toLowerCase();
     if (desc.indexOf('heli') !== -1) return 'CAT_A7';
     if (/^A3(1[89]|2[01]|20)$/.test(type)) return 'A320';
     if (/^A33[0-9]$/.test(type)) return 'A330';
@@ -446,7 +449,7 @@
       function validAirport(s) { return s && /[A-Z]/i.test(s); }
       var origin  = validAirport(p[8]) ? p[8] : '';
       var dest    = validAirport(p[9]) ? p[9] : '';
-      var acInfo  = (p[11] || type || '').trim();
+      var acInfo  = (p[10] || type || '').trim();
       var routeStr = origin && dest ? origin + '>' + dest : (origin || dest);
       var pad = 4;
       var rowCount = (lbl ? 1 : 0) + (acInfo ? 1 : 0) + (routeStr ? 1 : 0) + 1;
