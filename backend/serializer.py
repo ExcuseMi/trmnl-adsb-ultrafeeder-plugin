@@ -19,12 +19,12 @@ def _build_entry(plane: dict) -> list:
     return [
         plane.get('callsign', '') or '',  # 0
         ac_type or '',                    # 1
-        plane.get('altitude', 0),         # 2
-        plane.get('speed', 0),            # 3
-        plane.get('track', 0),            # 4
-        plane.get('source', 0),           # 5
-        round(plane['lat'], 4),           # 6
-        round(plane['lon'], 4),           # 7
+        plane.get('altitude', 0) or 0,         # 2
+        plane.get('speed', 0) or 0,            # 3
+        plane.get('track', 0) or 0,            # 4
+        plane.get('source', 0) or 0,           # 5
+        round(plane['lat'], 4) or 9,           # 6
+        round(plane['lon'], 4) or 0,           # 7
         plane.get('origin', '') or '',         # 8 — 0 if absent
         plane.get('dest', '') or '',           # 9 — 0 if absent
         plane.get('desc', '') or '',           # 10 — 0 if absent

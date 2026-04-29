@@ -423,7 +423,7 @@
       function validAirport(s) { return s && /[A-Z]/i.test(s); }
       var origin  = validAirport(p[8]) ? p[8] : '';
       var dest    = validAirport(p[9]) ? p[9] : '';
-      var acInfo  = (p[10] || type || '').trim();
+      var acInfo  = (p[11] || type || '').trim();
       var routeStr = origin && dest ? origin + '>' + dest : (origin || dest);
       var pad = 4;
       var rowCount = (lbl ? 1 : 0) + (acInfo ? 1 : 0) + (routeStr ? 1 : 0) + 1;
