@@ -99,15 +99,7 @@ def parse_aircraft(raw: list[dict], feeder_lat: float, feeder_lon: float) -> lis
 
 def parse_msg_rate(stats: dict) -> int:
     try:
-        stats_list = stats.get('stats', [])
-        if not stats_list:
-            return 0
-        last = stats_list[-1]
-        accepted = last.get('local', {}).get('accepted', [])
-        if isinstance(accepted, list):
-            return int(sum(accepted) / 60)
-        if isinstance(accepted, (int, float)):
-            return int(accepted / 60)
-    except Exception:
+        return int(stats['last1min']['messages_valid'] / 60)
+    except (KeyError, TypeError, ZeroDivisionError):
         pass
     return 0
