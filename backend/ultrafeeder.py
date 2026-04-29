@@ -97,9 +97,14 @@ def parse_aircraft(raw: list[dict], feeder_lat: float, feeder_lon: float) -> lis
     return result
 
 
-def parse_msg_rate(stats: dict) -> int:
+def parse_rf_stats(stats: dict) -> tuple[int, int, int, int]:
+    """Returns (msg_rate, strong_signals, positions_min, gain_db)."""
     try:
-        return int(stats['last1min']['messages_valid'] / 60)
-    except (KeyError, TypeError, ZeroDivisionError):
-        pass
-    return 0
+        last = stats.get('last1min', {})
+        msg_rate   = int(last.get('messages_valid', 0) / 60)
+        strong     = int(last.get('local', {}).get('strong_signals', 0))
+        pos_min    = int(last.get('position_count_total', 0))
+        gain_db    = round(float(stats.get('gain_db', 0)))
+        return msg_rate, strong, pos_min, gain_db
+    except (KeyError, TypeError, ValueError):
+        return 0, 0, 0, 0

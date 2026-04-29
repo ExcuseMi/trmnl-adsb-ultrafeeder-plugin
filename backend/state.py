@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import tempfile
 from collections import deque
 from datetime import datetime, timezone
 
@@ -18,11 +17,12 @@ class AppState:
         self.hn_history: deque = deque(maxlen=max_history)
         self.hr_history: deque = deque(maxlen=max_history)
         self.hm_history: deque = deque(maxlen=max_history)
+        self.hg_history: deque = deque(maxlen=max_history)
         self._ts_history: deque = deque(maxlen=max_history)
         self._day_max_range: float = 0.0
         self._day_date: str = ''
         self.timestamp: int = 0
-        self._stats: list = [0, 0, 0, 0, 0]
+        self._stats: list = [0, 0, 0, 0, 0, 0, 0, 0]
         if state_path:
             self._load()
 
@@ -34,7 +34,7 @@ class AppState:
     def ts_start(self) -> int:
         return self._ts_history[0] if self._ts_history else 0
 
-    def update(self, parsed: list[dict], msg_rate: int) -> None:
+    def update(self, parsed: list[dict], msg_rate: int, strong: int = 0, pos_min: int = 0, gain_db: int = 0) -> None:
         now = datetime.now(timezone.utc)
         today = now.strftime('%Y-%m-%d')
         self.timestamp = int(now.timestamp())
@@ -66,13 +66,14 @@ class AppState:
         self.hn_history.append(len(parsed))
         self.hr_history.append(int(max_range))
         self.hm_history.append(msg_rate)
+        self.hg_history.append(gain_db)
         self._ts_history.append(self.timestamp)
 
         if max_range > self._day_max_range:
             self._day_max_range = max_range
 
         mlat = sum(1 for a in parsed if a['source'] == 1)
-        self._stats = [len(parsed), mlat, int(max_range), int(self._day_max_range), msg_rate]
+        self._stats = [len(parsed), mlat, int(max_range), int(self._day_max_range), msg_rate, strong, pos_min, gain_db]
         self._save()
 
     def sorted_aircraft(self) -> list[dict]:
@@ -88,6 +89,8 @@ class AppState:
                 self.hr_history.append(v)
             for v in d.get('hm', [])[-self._max_history:]:
                 self.hm_history.append(v)
+            for v in d.get('hg', [])[-self._max_history:]:
+                self.hg_history.append(v)
             for v in d.get('ts', [])[-self._max_history:]:
                 self._ts_history.append(v)
             self._day_max_range = float(d.get('day_max_range', 0.0))
@@ -105,6 +108,7 @@ class AppState:
             'hn': list(self.hn_history),
             'hr': list(self.hr_history),
             'hm': list(self.hm_history),
+            'hg': list(self.hg_history),
             'ts': list(self._ts_history),
             'day_max_range': self._day_max_range,
             'day_date': self._day_date,

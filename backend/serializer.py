@@ -35,21 +35,23 @@ def build_payload(state, tier: str = 'standard') -> dict:
     hr = list(state.hr_history)
     s = state.stats
     hm = list(state.hm_history)
+    hg = list(state.hg_history)
     cos_f = round(math.cos(math.radians(state.feeder_lat)), 6)
     fc = [state.feeder_lat, state.feeder_lon, cos_f]
     ts = state.timestamp
     hn_max = max(hn) if hn else 0
     hr_max = max(hr) if hr else 0
     hm_max = max(hm) if hm else 0
+    hg_max = max(hg) if hg else 0
     ts_start = state.ts_start
     aircraft = state.sorted_aircraft()
 
     def total_size(ac_list):
         return _size({
             'merge_variables': {
-                'ac': ac_list, 'hn': hn, 'hr': hr, 'hm': hm, 's': s,
+                'ac': ac_list, 'hn': hn, 'hr': hr, 'hm': hm, 'hg': hg, 's': s,
                 'fc': fc, 'ts': ts, 'hn_max': hn_max, 'hr_max': hr_max,
-                'hm_max': hm_max, 'ts_start': ts_start,
+                'hm_max': hm_max, 'hg_max': hg_max, 'ts_start': ts_start,
             }
         })
 
@@ -71,6 +73,9 @@ def build_payload(state, tier: str = 'standard') -> dict:
         if hm:
             hm.pop(0)
             trimmed = True
+        if hg:
+            hg.pop(0)
+            trimmed = True
         if not trimmed:
             break
 
@@ -78,9 +83,9 @@ def build_payload(state, tier: str = 'standard') -> dict:
 
     return {
         'merge_variables': {
-            'ac': ac_entries, 'hn': hn, 'hr': hr, 'hm': hm, 's': s,
+            'ac': ac_entries, 'hn': hn, 'hr': hr, 'hm': hm, 'hg': hg, 's': s,
             'fc': fc, 'ts': ts, 'hn_max': hn_max, 'hr_max': hr_max,
-            'hm_max': hm_max, 'ts_start': ts_start,
+            'hm_max': hm_max, 'hg_max': hg_max, 'ts_start': ts_start,
         },
         '_budget': budget,
         '_used': used,

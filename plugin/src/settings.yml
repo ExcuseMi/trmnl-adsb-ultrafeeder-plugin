@@ -65,4 +65,4 @@ custom_fields:
   help_text: Find coordinates at <a href="https://www.latlong.net/" target="_blank">latlong.net</a>
   optional: true
 name: ADS-B Ultrafeeder
-refresh_interval: 15
+refresh_interval: 5

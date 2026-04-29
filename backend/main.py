@@ -6,7 +6,7 @@ from quart import Quart, jsonify
 
 from state import AppState
 from serializer import build_payload
-from ultrafeeder import fetch_aircraft, fetch_stats, parse_aircraft, parse_msg_rate
+from ultrafeeder import fetch_aircraft, fetch_stats, parse_aircraft, parse_rf_stats
 from enrichment import enrich
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s %(message)s')
@@ -49,11 +49,11 @@ async def _poll_and_push() -> None:
             )
 
             parsed = parse_aircraft(raw_ac, FEEDER_LAT, FEEDER_LON)
-            msg_rate = parse_msg_rate(raw_stats)
+            msg_rate, strong, pos_min, gain_db = parse_rf_stats(raw_stats)
 
             await enrich(parsed, ROUTE_DISPLAY, session)
 
-            _state.update(parsed, msg_rate)
+            _state.update(parsed, msg_rate, strong, pos_min, gain_db)
 
             payload = build_payload(_state, TIER)
             budget = payload.pop('_budget', 0)
