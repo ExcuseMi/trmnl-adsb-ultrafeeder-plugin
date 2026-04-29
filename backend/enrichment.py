@@ -67,18 +67,19 @@ async def _fetch_route(cs: str, session: aiohttp.ClientSession) -> dict | None:
     return None
 
 
-async def _fetch_ac(hex_code: str, session: aiohttp.ClientSession) -> str | None:
+async def _fetch_ac(hex_code: str, session: aiohttp.ClientSession) -> tuple[str | None, str | None]:
+    """Returns (icao_type, description)."""
     global _backoff_until, _sem
     if _sem is None:
         _sem = asyncio.Semaphore(3)
 
-    hex_code = hex_code.upper() # API expects uppercase HEX
+    hex_code = hex_code.upper()
     if time.monotonic() < _backoff_until:
-        return None
+        return None, None
 
     cached, expires = _ac_cache.get(hex_code, (None, 0))
     if time.monotonic() < expires:
-        return cached
+        return cached  # stored as (type, desc) tuple
 
     try:
         async with _sem:
@@ -89,23 +90,27 @@ async def _fetch_ac(hex_code: str, session: aiohttp.ClientSession) -> str | None
                 if resp.status == 429:
                     ra = float(resp.headers.get('Retry-After', 60))
                     _backoff_until = time.monotonic() + ra
-                    return None
+                    return None, None
                 if resp.status == 200:
-                    ac_type = (await resp.json()).get('response', {}).get('icao_type')
-                    _ac_cache[hex_code] = (ac_type, time.monotonic() + TTL)
-                    if ac_type:
-                        log.info('enriched type: %s -> %s', hex_code, ac_type)
-                    return ac_type
-                _ac_cache[hex_code] = (None, time.monotonic() + TTL)
+                    data = (await resp.json()).get('response', {})
+                    ac_data = data.get('aircraft') or data
+                    icao_type = ac_data.get('icao_type') or None
+                    desc = (ac_data.get('type') or ac_data.get('description') or None)
+                    result = (icao_type, desc)
+                    _ac_cache[hex_code] = (result, time.monotonic() + TTL)
+                    if icao_type:
+                        log.info('enriched type: %s -> %s (%s)', hex_code, icao_type, desc)
+                    return result
+                _ac_cache[hex_code] = ((None, None), time.monotonic() + TTL)
     except Exception as exc:
         log.debug('adsbdb ac %s: %s', hex_code, exc)
-    return None
+    return None, None
 
 
-def _route_string(route: dict, mode: str) -> str | None:
-    o = _label(route.get('origin', {}), mode)
-    d = _label(route.get('destination', {}), mode)
-    return f'{o}>{d}' if o and d else None
+def _origin_dest(route: dict, mode: str) -> tuple[str | None, str | None]:
+    o = _label(route.get('origin', {}), mode) or None
+    d = _label(route.get('destination', {}), mode) or None
+    return o, d
 
 
 def _progress(plane: dict, route: dict) -> int | None:
@@ -153,12 +158,18 @@ async def enrich(aircraft: list[dict], mode: str, session: aiohttp.ClientSession
     # 3. Apply
     for plane, route, ac_type in zip(aircraft, routes, ac_types):
         if route and not isinstance(route, Exception):
-            rt = _route_string(route, mode)
+            origin, dest = _origin_dest(route, mode)
             prog = _progress(plane, route)
-            if rt:
-                plane['route'] = rt
+            if origin:
+                plane['origin'] = origin
+            if dest:
+                plane['dest'] = dest
             if prog is not None:
                 plane['progress'] = prog
 
         if ac_type and not isinstance(ac_type, Exception):
-            plane['type'] = ac_type
+            icao_type, desc = ac_type if isinstance(ac_type, tuple) else (ac_type, None)
+            if icao_type:
+                plane['type'] = icao_type
+            if desc:
+                plane['desc'] = desc[:28]

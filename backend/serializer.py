@@ -24,29 +24,28 @@ def _trail_deltas(aircraft: dict) -> list | None:
 
 def _build_entry(plane: dict, include_trail: bool) -> list:
     trail = _trail_deltas(plane) if include_trail else None
-    route = plane.get('route')
-    progress = plane.get('progress')
-    emergency = plane.get('emergency')
 
-    # Final safety check for generic types
     ac_type = (plane.get('type', '') or '').strip()
     if ac_type.lower() in ('adsb_icao', 'mode_s', 'tis-b', 'ads-r', 'unknown', ''):
         ac_type = ''
 
-    # Return exactly 12 elements to ensure index stability in Liquid template
+    # [0]=callsign [1]=type [2]=alt [3]=spd [4]=trk [5]=src
+    # [6]=lat [7]=lon [8]=trail [9]=origin [10]=dest [11]=progress [12]=emergency [13]=desc
     return [
-        plane.get('callsign', '') or '', # 0
-        ac_type,                         # 1
-        plane.get('altitude', 0),        # 2
-        plane.get('speed', 0),           # 3
-        plane.get('track', 0),           # 4
-        plane.get('source', 0),          # 5
-        round(plane['lat'], 4),          # 6
-        round(plane['lon'], 4),          # 7
-        trail,                           # 8: trail
-        route,                           # 9: route
-        progress,                        # 10: progress
-        emergency                        # 11: emergency
+        plane.get('callsign', '') or '',  # 0
+        ac_type,                          # 1
+        plane.get('altitude', 0),         # 2
+        plane.get('speed', 0),            # 3
+        plane.get('track', 0),            # 4
+        plane.get('source', 0),           # 5
+        round(plane['lat'], 4),           # 6
+        round(plane['lon'], 4),           # 7
+        trail,                            # 8
+        plane.get('origin') or None,      # 9
+        plane.get('dest') or None,        # 10
+        plane.get('progress') or None,    # 11
+        plane.get('emergency') or None,   # 12
+        plane.get('desc') or None,        # 13
     ]
 
 
