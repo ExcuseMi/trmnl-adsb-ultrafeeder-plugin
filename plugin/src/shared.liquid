@@ -15,6 +15,8 @@
 {% assign inst = "adsb_" | append_random %}
 {% assign _hn_max = hn_max | default: 1 | plus: 0 %}
 {% assign _hr_max = hr_max | default: 1 | plus: 0 %}
+{% assign _local_ts = ts | plus: trmnl.user.utc_offset %}
+{% assign _time_str = _local_ts | date: "%H:%M" %}
 
 <div class="layout layout--stretch gap--none m--0 p--0" data-inst="{{ inst }}"
      style="flex-direction:column;overflow:hidden;">
@@ -23,7 +25,7 @@
 
   <div class="layout layout--col gap--small" style="justify-content:center;text-align:center;flex:1;">
     <div class="value value--large">{{ s[0] }}</div>
-    <div class="label label--small">{{ s[1] }} MLAT · {{ s[2] }} nm · {{ ts }}</div>
+    <div class="label label--small">{{ s[1] }} MLAT · {{ s[2] }} nm · {{ _time_str }}</div>
     {% for p in ac %}{% if p[13] %}<div class="label label--error label--small">⚠ {{ p[0] }}</div>{% endif %}{% endfor %}
   </div>
 
@@ -58,7 +60,7 @@
         <div style="display:flex;justify-content:space-between;margin-top:3px;padding-left:23px;">
           <span style="font-size:10px;color:#888;">oldest</span>
           <span style="font-size:11px;color:#fff;font-weight:bold;">✈ planes</span>
-          <span style="font-size:10px;color:#aaa;font-weight:bold;">{{ ts }}</span>
+          <span style="font-size:10px;color:#aaa;font-weight:bold;">{{ _time_str }}</span>
         </div>
       </div>
 
@@ -76,7 +78,7 @@
         <div style="display:flex;justify-content:space-between;margin-top:3px;padding-right:29px;">
           <span style="font-size:10px;color:#888;">oldest</span>
           <span style="font-size:11px;color:#fff;font-weight:bold;">range nm</span>
-          <span style="font-size:10px;color:#aaa;font-weight:bold;">{{ ts }}</span>
+          <span style="font-size:10px;color:#aaa;font-weight:bold;">{{ _time_str }}</span>
         </div>
       </div>
 
@@ -92,7 +94,7 @@
   <svg class="h--8 dark:hidden" viewBox="0 0 36 36" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" fill="black"><path d="M6.25,11.5,12,13.16l6.32-4.59-9.07.26A.52.52,0,0,0,9,8.91L6.13,10.56A.51.51,0,0,0,6.25,11.5Z"/><path d="M34.52,6.36,28.22,5a3.78,3.78,0,0,0-3.07.67L6.12,19.5l-4.57-.2a1.25,1.25,0,0,0-.83,2.22l4.45,3.53a.55.55,0,0,0,.53.09c1.27-.49,6-3,11.59-6.07l1.12,11.51a.55.55,0,0,0,.9.37l2.5-2.08a.76.76,0,0,0,.26-.45l2.37-13.29c4-2.22,7.82-4.37,10.51-5.89A1.55,1.55,0,0,0,34.52,6.36Z"/></svg>
   <svg class="h--8 dark:block hidden" viewBox="0 0 36 36" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" fill="black" style="filter: invert(1);"><path d="M6.25,11.5,12,13.16l6.32-4.59-9.07.26A.52.52,0,0,0,9,8.91L6.13,10.56A.51.51,0,0,0,6.25,11.5Z"/><path d="M34.52,6.36,28.22,5a3.78,3.78,0,0,0-3.07.67L6.12,19.5l-4.57-.2a1.25,1.25,0,0,0-.83,2.22l4.45,3.53a.55.55,0,0,0,.53.09c1.27-.49,6-3,11.59-6.07l1.12,11.51a.55.55,0,0,0,.9.37l2.5-2.08a.76.76,0,0,0,.26-.45l2.37-13.29c4-2.22,7.82-4.37,10.51-5.89A1.55,1.55,0,0,0,34.52,6.36Z"/></svg>
   <span class="title">{{ trmnl.plugin_settings.instance_name | default: "ADS-B" }}</span>
-  <span class="instance md:portrait:hidden">{{ s[0] }} planes · {{ s[2] }} nm · {{ ts }}</span>
+  <span class="instance md:portrait:hidden">{{ s[0] }} planes · {{ s[2] }} nm · {{ _time_str }}</span>
 </div>
 
 <script>
@@ -444,7 +446,7 @@
       function validAirport(s) { return s && /[A-Z]/i.test(s); }
       var origin  = validAirport(p[9])  ? p[9]  : '';
       var dest    = validAirport(p[10]) ? p[10] : '';
-      var acInfo  = (p[13] || type || '').trim();
+      var acInfo  = (p[12] || type || '').trim();
       var routeStr = origin && dest ? origin + '>' + dest : (origin || dest);
       var pad = 4;
       var rowCount = (lbl ? 1 : 0) + (acInfo ? 1 : 0) + (routeStr ? 1 : 0) + 1;
