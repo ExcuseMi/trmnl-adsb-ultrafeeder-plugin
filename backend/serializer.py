@@ -30,7 +30,7 @@ def _build_entry(plane: dict, include_trail: bool) -> list:
         ac_type = ''
 
     # [0]=callsign [1]=type [2]=alt [3]=spd [4]=trk [5]=src
-    # [6]=lat [7]=lon [8]=trail [9]=origin [10]=dest [11]=progress [12]=emergency [13]=desc
+    # [6]=lat [7]=lon [8]=trail [9]=origin [10]=dest [11]=progress [12]=desc [13]=emergency
     return [
         plane.get('callsign', '') or '',  # 0
         ac_type,                          # 1
@@ -44,8 +44,8 @@ def _build_entry(plane: dict, include_trail: bool) -> list:
         plane.get('origin') or None,      # 9
         plane.get('dest') or None,        # 10
         plane.get('progress') or None,    # 11
-        plane.get('emergency') or None,   # 12
-        plane.get('desc') or None,        # 13
+        plane.get('desc') or None,        # 12  ← before emergency so it's never hidden by null collapse
+        plane.get('emergency') or None,   # 13
     ]
 
 
