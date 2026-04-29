@@ -6,16 +6,19 @@ import aiohttp
 
 log = logging.getLogger(__name__)
 
-ADSBDB_BASE = 'https://api.adsbdb.com/v0/callsign/'
+ADSBDB_CALLSIGN = 'https://api.adsbdb.com/v0/callsign/'
+ADSBDB_AIRCRAFT = 'https://api.adsbdb.com/v0/aircraft/'
 TTL = 4 * 3600
 
-_cache: dict[str, tuple] = {}  # callsign -> (route_or_None, expires_at)
+_route_cache: dict[str, tuple] = {}  # callsign -> (route_or_None, expires_at)
+_ac_cache: dict[str, tuple] = {}     # hex -> (type_or_None, expires_at)
 _backoff_until: float = 0.0
 _sem: asyncio.Semaphore | None = None
 
 
 def _valid(cs: str) -> bool:
-    return bool(cs and len(cs) >= 4 and re.match(r'^[A-Z]{2,3}\d', cs))
+    # Relaxed to allow 1-3 letters followed by a digit (supports N-numbers and 2-char airlines)
+    return bool(cs and len(cs) >= 3 and re.match(r'^[A-Z]{1,3}\d', cs))
 
 
 def _label(airport: dict, mode: str) -> str:
@@ -28,7 +31,7 @@ def _label(airport: dict, mode: str) -> str:
     return airport.get('iata_code') or airport.get('icao_code', '')
 
 
-async def _fetch_one(cs: str, session: aiohttp.ClientSession) -> dict | None:
+async def _fetch_route(cs: str, session: aiohttp.ClientSession) -> dict | None:
     global _backoff_until, _sem
     if _sem is None:
         _sem = asyncio.Semaphore(3)
@@ -36,14 +39,14 @@ async def _fetch_one(cs: str, session: aiohttp.ClientSession) -> dict | None:
     if time.monotonic() < _backoff_until:
         return None
 
-    cached, expires = _cache.get(cs, (None, 0))
+    cached, expires = _route_cache.get(cs, (None, 0))
     if time.monotonic() < expires:
         return cached
 
     try:
         async with _sem:
             async with session.get(
-                f'{ADSBDB_BASE}{cs}',
+                f'{ADSBDB_CALLSIGN}{cs}',
                 timeout=aiohttp.ClientTimeout(total=5),
             ) as resp:
                 if resp.status == 429:
@@ -54,11 +57,43 @@ async def _fetch_one(cs: str, session: aiohttp.ClientSession) -> dict | None:
                 if resp.status == 200:
                     fr = (await resp.json()).get('response', {}).get('flightroute')
                     route = {'origin': fr.get('origin') or {}, 'destination': fr.get('destination') or {}} if fr else None
-                    _cache[cs] = (route, time.monotonic() + TTL)
+                    _route_cache[cs] = (route, time.monotonic() + TTL)
                     return route
-                _cache[cs] = (None, time.monotonic() + TTL)
+                _route_cache[cs] = (None, time.monotonic() + TTL)
     except Exception as exc:
-        log.debug('adsbdb %s: %s', cs, exc)
+        log.debug('adsbdb route %s: %s', cs, exc)
+    return None
+
+
+async def _fetch_ac(hex_code: str, session: aiohttp.ClientSession) -> str | None:
+    global _backoff_until, _sem
+    if _sem is None:
+        _sem = asyncio.Semaphore(3)
+
+    if time.monotonic() < _backoff_until:
+        return None
+
+    cached, expires = _ac_cache.get(hex_code, (None, 0))
+    if time.monotonic() < expires:
+        return cached
+
+    try:
+        async with _sem:
+            async with session.get(
+                f'{ADSBDB_AIRCRAFT}{hex_code}',
+                timeout=aiohttp.ClientTimeout(total=5),
+            ) as resp:
+                if resp.status == 429:
+                    ra = float(resp.headers.get('Retry-After', 60))
+                    _backoff_until = time.monotonic() + ra
+                    return None
+                if resp.status == 200:
+                    ac_type = (await resp.json()).get('response', {}).get('icao_type')
+                    _ac_cache[hex_code] = (ac_type, time.monotonic() + TTL)
+                    return ac_type
+                _ac_cache[hex_code] = (None, time.monotonic() + TTL)
+    except Exception as exc:
+        log.debug('adsbdb ac %s: %s', hex_code, exc)
     return None
 
 
@@ -82,26 +117,40 @@ def _progress(plane: dict, route: dict) -> int | None:
         return None
 
 
-async def _maybe_fetch(cs: str, session: aiohttp.ClientSession) -> dict | None:
-    return await _fetch_one(cs, session) if _valid(cs) else None
-
-
 async def enrich(aircraft: list[dict], mode: str, session: aiohttp.ClientSession) -> None:
-    if mode == 'off' or not aircraft:
+    if not aircraft:
         return
 
-    callsigns = [a['callsign'] for a in aircraft]
-    routes = await asyncio.gather(
-        *[_maybe_fetch(cs, session) for cs in callsigns],
-        return_exceptions=True,
-    )
+    # 1. Enrichment tasks
+    route_tasks = []
+    ac_tasks = []
 
-    for plane, route in zip(aircraft, routes):
-        if not route or isinstance(route, Exception):
-            continue
-        rt = _route_string(route, mode)
-        prog = _progress(plane, route)
-        if rt:
-            plane['route'] = rt
-        if prog is not None:
-            plane['progress'] = prog
+    for a in aircraft:
+        cs = a['callsign']
+        if mode != 'off' and _valid(cs):
+            route_tasks.append(_fetch_route(cs, session))
+        else:
+            route_tasks.append(asyncio.sleep(0, result=None))
+
+        if not a.get('type'):
+            ac_tasks.append(_fetch_ac(a['hex'], session))
+        else:
+            ac_tasks.append(asyncio.sleep(0, result=None))
+
+    # 2. Execute
+    results = await asyncio.gather(*(route_tasks + ac_tasks), return_exceptions=True)
+    routes = results[:len(aircraft)]
+    ac_types = results[len(aircraft):]
+
+    # 3. Apply
+    for plane, route, ac_type in zip(aircraft, routes, ac_types):
+        if route and not isinstance(route, Exception):
+            rt = _route_string(route, mode)
+            prog = _progress(plane, route)
+            if rt:
+                plane['route'] = rt
+            if prog is not None:
+                plane['progress'] = prog
+
+        if ac_type and not isinstance(ac_type, Exception):
+            plane['type'] = ac_type

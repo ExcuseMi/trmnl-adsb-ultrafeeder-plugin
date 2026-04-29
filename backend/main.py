@@ -52,8 +52,7 @@ async def _poll_and_push() -> None:
             parsed = parse_aircraft(raw_ac, FEEDER_LAT, FEEDER_LON)
             msg_rate = parse_msg_rate(raw_stats)
 
-            if ROUTE_DISPLAY != 'off':
-                await enrich(parsed, ROUTE_DISPLAY, session)
+            await enrich(parsed, ROUTE_DISPLAY, session)
 
             _state.update(parsed, msg_rate)
 

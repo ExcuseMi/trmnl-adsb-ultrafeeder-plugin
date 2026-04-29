@@ -31,7 +31,8 @@
 - [ ] Docker image not yet published to ghcr.io
 - [ ] `version.json` not yet created
 - [ ] GitHub Actions workflows not yet created
-
+- [ ] Route doesn't work
+- [ ] Plane type doesn't work, shows adsb_icao
 ## Key decisions
 - Webhook push model: container polls ultrafeeder, pushes to TRMNL on schedule
 - No Redis — all state in-memory; history persisted to STATE_PATH via atomic JSON write
@@ -40,3 +41,4 @@
 - Backend pushes fc=[lat,lon,cos_factor], hn_max, hr_max so template can project + normalize without server roundtrip
 - Radar: inline JS SVG, altitude→opacity bands, callsign labels for closest 10
 - Budget algorithm: planes sorted by distance, trails added for closest if budget allows
+

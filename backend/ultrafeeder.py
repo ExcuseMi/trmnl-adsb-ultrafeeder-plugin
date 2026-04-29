@@ -75,10 +75,14 @@ def parse_aircraft(raw: list[dict], feeder_lat: float, feeder_lon: float) -> lis
         dlon = (lon - feeder_lon) * cos_lat
         dist_nm = round(math.sqrt(dlat ** 2 + dlon ** 2) * NM_PER_DEG, 1)
 
+        raw_type = (ac.get('t') or ac.get('type') or '').strip()
+        if raw_type.lower() in ('adsb_icao', 'mode_s', 'tis-b', 'ads-r'):
+            raw_type = ''
+
         result.append({
             'hex':       ac.get('hex', ''),
             'callsign':  (ac.get('flight') or '').strip(),
-            'type':      (ac.get('t') or ac.get('type') or '').strip(),
+            'type':      raw_type,
             'altitude':  alt,
             'speed':     int(ac.get('gs') or 0),
             'track':     int(ac.get('track') or 0),
