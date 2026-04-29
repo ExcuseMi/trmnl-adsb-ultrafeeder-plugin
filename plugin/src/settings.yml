@@ -53,12 +53,12 @@ custom_fields:
   default: '200'
   optional: true
 - keyname: center_lat
-  field_type: text
+  field_type: string
   name: Radar Center Latitude
   description: Latitude to center the radar map on. Leave blank to use your feeder position. Useful when most of your traffic is in one direction.
   optional: true
 - keyname: center_lon
-  field_type: text
+  field_type: string
   name: Radar Center Longitude
   description: Longitude to center the radar map on. Leave blank to use your feeder position.
   optional: true
