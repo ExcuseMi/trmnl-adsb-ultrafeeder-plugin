@@ -20,7 +20,6 @@ FEEDER_LON          = float(os.getenv('FEEDER_LON', '4.5678'))
 TRMNL_WEBHOOK_URL   = os.getenv('TRMNL_WEBHOOK_URL', '')
 TIER                = os.getenv('TIER', 'standard')
 POLL_INTERVAL       = int(os.getenv('POLL_INTERVAL_SECONDS', '300'))
-TRAILS_ENABLED      = os.getenv('TRAILS_ENABLED', 'true').lower() == 'true'
 HISTORY_TIMEFRAME   = os.getenv('HISTORY_TIMEFRAME', '2h')
 ROUTE_DISPLAY       = os.getenv('ROUTE_DISPLAY', 'codes')
 STATE_PATH          = os.getenv('STATE_PATH', '/data/state.json')
@@ -56,7 +55,7 @@ async def _poll_and_push() -> None:
 
             _state.update(parsed, msg_rate)
 
-            payload = build_payload(_state, TIER, TRAILS_ENABLED)
+            payload = build_payload(_state, TIER)
             budget = payload.pop('_budget', 0)
             used = payload.pop('_used', 0)
 
