@@ -23,7 +23,9 @@ def _trail_deltas(aircraft: dict) -> list | None:
 
 
 def _build_entry(plane: dict, include_trail: bool) -> list:
-    trail = _trail_deltas(plane) if include_trail else None
+    # TRMNL strips null from JSON arrays, collapsing indices. Use 0 as sentinel for absent
+    # optional fields so positions [8]-[13] are always present and indices never shift.
+    trail = (_trail_deltas(plane) if include_trail else None) or 0
 
     ac_type = (plane.get('type', '') or '').strip()
     if ac_type.lower() in ('adsb_icao', 'mode_s', 'tis-b', 'ads-r', 'unknown', ''):
@@ -31,6 +33,7 @@ def _build_entry(plane: dict, include_trail: bool) -> list:
 
     # [0]=callsign [1]=type [2]=alt [3]=spd [4]=trk [5]=src
     # [6]=lat [7]=lon [8]=trail [9]=origin [10]=dest [11]=progress [12]=desc [13]=emergency
+    # Absent optional fields use 0 (not null) to prevent TRMNL null-stripping from shifting indices.
     return [
         plane.get('callsign', '') or '',  # 0
         ac_type,                          # 1
@@ -40,12 +43,12 @@ def _build_entry(plane: dict, include_trail: bool) -> list:
         plane.get('source', 0),           # 5
         round(plane['lat'], 4),           # 6
         round(plane['lon'], 4),           # 7
-        trail,                            # 8
-        plane.get('origin') or None,      # 9
-        plane.get('dest') or None,        # 10
-        plane.get('progress') or None,    # 11
-        plane.get('desc') or None,        # 12  ← before emergency so it's never hidden by null collapse
-        plane.get('emergency') or None,   # 13
+        trail,                            # 8 — 0 if absent
+        plane.get('origin') or 0,         # 9 — 0 if absent
+        plane.get('dest') or 0,           # 10 — 0 if absent
+        plane.get('progress') or 0,       # 11 — 0 if absent
+        plane.get('desc') or 0,           # 12 — 0 if absent
+        plane.get('emergency') or 0,      # 13 — 0 if absent
     ]
 
 

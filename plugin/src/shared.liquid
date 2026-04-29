@@ -26,7 +26,7 @@
   <div class="layout layout--col gap--small" style="justify-content:center;text-align:center;flex:1;">
     <div class="value value--large">{{ s[0] }}</div>
     <div class="label label--small">{{ s[1] }} MLAT · {{ s[2] }} nm · {{ _time_str }}</div>
-    {% for p in ac %}{% if p[13] %}<div class="label label--error label--small">⚠ {{ p[0] }}</div>{% endif %}{% endfor %}
+    {% for p in ac %}{% if p[13] and p[13] != 0 %}<div class="label label--error label--small">⚠ {{ p[0] }}</div>{% endif %}{% endfor %}
   </div>
 
   {% else %}
@@ -502,7 +502,7 @@
       if (routeStr) {
         rowY += 14; addRow(routeStr, rowY, '11', null, '#aaaaaa');
         var progress = p[11];
-        if (progress != null) {
+        if (progress > 0) {
           var barW = maxWidth - pad;
           layer.appendChild(document.createElementNS(ns, 'rect')).setAttribute('x', lx);
           layer.lastChild.setAttribute('y', rowY + 4); layer.lastChild.setAttribute('width', barW);
