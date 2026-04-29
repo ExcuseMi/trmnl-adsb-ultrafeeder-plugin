@@ -6,12 +6,9 @@ A Docker container that sits alongside an existing
 [docker-adsb-ultrafeeder](https://github.com/sdr-enthusiasts/docker-adsb-ultrafeeder)
 deployment and feeds live aircraft data to a TRMNL e-paper display.
 
-Two delivery paths from one data model:
-
-- **Webhook** — container pushes compact JSON to TRMNL on a schedule. Works from
-  any LAN, no inbound ports needed. Constrained to 2 KB (standard) / 5 KB (TRMNL+).
-- **REST API** — container exposes a full-fidelity endpoint for BYOS / polling
-  setups. No size constraints. Same in-memory data, different serializer.
+Webhook-only: container polls ultrafeeder, maintains rolling state in-memory, and
+pushes compact JSON to TRMNL on a schedule. Works from any LAN — no inbound ports
+needed. Constrained to 2 KB (standard) / 5 KB (TRMNL+).
 
 ---
 
@@ -30,38 +27,15 @@ services:
     restart: unless-stopped
     environment:
       - ULTRAFEEDER_URL=http://wireguard      # reachable within docker network
+      - FEEDER_LAT=51.1234
+      - FEEDER_LON=4.5678
       - TRMNL_WEBHOOK_URL=${TRMNL_WEBHOOK_URL}
-      - POLL_INTERVAL_SECONDS=300             # 300 = safe for standard (12/hr), 120 for TRMNL+
-      - RADIUS_NM=100
-      - MAX_PLANES=22                         # reduced from 35 when trails enabled
-      - TRAIL_PLANES=5                        # how many closest planes get trail history
-      - TRAIL_POINTS=3                        # position history depth per trailed plane
-      - HISTORY_POINTS=24                     # sparkline depth (24 × 5min = 2hr)
+      - TIER=standard                         # standard (2 KB) or plus (5 KB)
+      - POLL_INTERVAL_SECONDS=300             # 300 = safe for standard (12/hr), 120 for plus
+      - TRAILS_ENABLED=true                   # include position trails for closest planes
+      - HISTORY_TIMEFRAME=2h                  # sparkline depth: 1h, 2h, 3h, 6h, 12h, 24h
+      - ROUTE_DISPLAY=codes                   # codes (LHR>AMS), cities (London>Amsterdam), off
 ```
-
-For the REST/BYOS path, add a new ingress rule to `cloudflared/config.yml`:
-
-```yaml
-- hostname: skywatch.bettens.dev   # new dedicated hostname, no Cloudflare Access policy
-  service: http://trmnl-adsb:8080
-```
-
-The existing `adsb.bettens.dev` (tar1090 map) stays protected by Cloudflare Access
-and is never touched.
-
----
-
-## Privacy
-
-The receiver's lat/lon (home address) is **never included in any outbound payload**.
-
-- Webhook and REST API return plane data only.
-- Center coordinates live in the TRMNL plugin settings (user-side), sent as query
-  params to the REST endpoint: `?lat=51.12&lon=4.56&radius=100`.
-- The REST endpoint uses those params for distance filtering and projection — they
-  are not stored or logged.
-
----
 
 ## Payload design
 
@@ -80,6 +54,7 @@ Single `deep_merge` push per interval. Container maintains all state in-memory.
     "hn": [42,38,35,41,44,40,37,39,42,41,38,36,33,35,38,40,43,44,42,39,37,40,42,44],
     "hr": [180,175,168,182,190,185,178,172,180,183,188,175,170,168,172,175,180,185],
     "s":  [42, 8, 180, 247, 1250],
+    "fc": [51.1234, 4.5678],
     "ts": "14:32"
   }
 }
@@ -118,6 +93,12 @@ Parallel flat integer arrays. Index 0 = oldest, last index = current interval.
 Flat arrays (not array-of-objects) to maximize point density within the byte budget.
 At 5-min intervals, 24 points = 2 hours. At 15-min, 6 hours.
 
+#### `fc` — feeder station coordinates
+
+`[lat, lon]` — the receiver's fixed position, 4 dp. Sourced from `FEEDER_LAT` /
+`FEEDER_LON` env vars. Used by the Liquid template to compute bearing/distance to
+each plane without needing a server-side calculation.
+
 #### `s` — feeder stats
 
 `[total_ac, mlat_count, range_nm, day_max_range_nm, msg_rate]`
@@ -127,81 +108,51 @@ Daily max range resets at local midnight. `msg_rate` is messages/second from
 
 #### `ts`
 
-Current time as `"HH:MM"` (local time of the container). No timezone — display
-label only.
+Current time as `"HH:MM"` UTC. Timezone conversion to display time happens in the
+Liquid template, driven by a plugin setting on the TRMNL side.
 
-#### Units
+#### Units / timezone
 
-Not included in the payload. Unit conversion (ft→m, kt→km/h) happens in the
-Liquid template or `transform.js`, driven by a plugin setting on the TRMNL side.
+Not included in the payload. Unit conversion (ft→m, kt→km/h) and timezone offset
+happen in the Liquid template, driven by plugin settings on the TRMNL side. All
+timestamps in the payload are UTC.
 
-### 2 KB budget breakdown
+### Dynamic serializer
+
+Fits as much data as possible within the tier budget — no fixed plane/history
+limits. Algorithm (planes sorted by distance ascending):
+
+1. Reserve fixed overhead: `hn`, `hr`, `s`, `fc`, `ts`, JSON wrapper (~280 bytes).
+2. Add planes one by one, measuring actual serialized byte cost before committing.
+3. If `TRAILS_ENABLED=true`, add trails for closest planes first; each trail
+   measured and committed only if it fits. Trails are the first thing dropped.
+4. History trimmed from the oldest end last if still over budget.
+
+`TIER` sets the budget: `standard` = 2048 bytes, `plus` = 5120 bytes. Plane count
+and trail depth are automatic consequences — not configured directly.
+
+`HISTORY_TIMEFRAME` sets the rolling window depth. Point count =
+`timeframe / POLL_INTERVAL_SECONDS` (e.g. `2h` at 300 s = 24 points). The
+serializer trims to fit if the budget requires it.
+
+The serializer exposes `X-Payload-Budget` and `X-Payload-Used` response headers for
+layout debugging.
+
+### Budget reference (standard tier, ~typical)
 
 | Field | Bytes |
 |---|---|
 | 22 planes × ~55 bytes (no trail) | ~1210 |
-| 5 trail arrays × ~35 bytes each | ~175 |
+| 5 trail arrays × ~30 bytes each | ~150 |
 | `hn` 24 points | ~80 |
 | `hr` 24 points | ~95 |
 | `s` array | ~28 |
+| `fc` coords | ~22 |
 | `ts` + JSON wrapper | ~55 |
-| **Total** | **~1643** |
+| **Total** | **~1640** |
 
 ~400 bytes headroom on standard tier. TRMNL+ (5 KB) allows ~40 planes + 48-point
 history comfortably.
-
-### REST API
-
-Same in-memory state, no size constraints.
-
-```json
-{
-  "aircraft": [
-    {
-      "flight":    "BAW123",
-      "type":      "A320",
-      "alt_baro":  35000,
-      "alt_geom":  35225,
-      "gs":        450,
-      "track":     245,
-      "src":       "adsb",
-      "rssi":      -18.5,
-      "nic":       8,
-      "nac_p":     9,
-      "emergency": "none",
-      "nav_modes": ["autopilot", "althold"],
-      "lat":       51.1234,
-      "lon":       4.5678,
-      "trail": [
-        {"lat": 51.1104, "lon": 4.5498, "ts": "14:27"},
-        {"lat": 51.0974, "lon": 4.5318, "ts": "14:22"},
-        {"lat": 51.0844, "lon": 4.5138, "ts": "14:17"}
-      ],
-      "origin":   "LHR",
-      "dest":     "AMS",
-      "progress": 0.45
-    }
-  ],
-  "history": [
-    {"ts": "09:00", "count": 12, "range_nm": 45},
-    {"ts": "09:05", "count": 18, "range_nm": 72}
-  ],
-  "stats": {
-    "total":           42,
-    "adsb":            34,
-    "mlat":            8,
-    "tisb":            0,
-    "range_nm":        180,
-    "day_max_range_nm":247,
-    "msg_rate":        1250
-  },
-  "fetched_at": "2026-04-29T14:32:00Z"
-}
-```
-
-REST gets: full field names, `rssi`, `nic`, `nac_p`, `nav_modes`, `alt_geom`,
-`trail` with timestamps, named `history` with timestamps, airport list (future),
-`fetched_at` ISO timestamp.
 
 ---
 
@@ -225,51 +176,53 @@ REST gets: full field names, `rssi`, `nic`, `nac_p`, `nav_modes`, `alt_geom`,
 ## Container structure
 
 ```
-app/
+backend/
 ├── main.py           # scheduler: poll ultrafeeder → update state → push webhook
-├── api.py            # FastAPI: GET / → REST payload
 ├── state.py          # in-memory data model + rolling history deque
-├── serializers.py    # webhook_payload(state, tier) / rest_payload(state)
+├── serializer.py     # webhook_payload(state) — dynamic, budget-aware
 ├── ultrafeeder.py    # client for /data/aircraft.json + /data/stats.json
-├── enrichment.py     # route lookup (adsbdb), airport filter (OurAirports)
-└── history.py        # rolling deque, daily max range tracker
+├── enrichment.py     # route lookup (adsbdb)
+├── history.py        # rolling deque keyed by HISTORY_TIMEFRAME
+└── enrichment.py     # adsbdb route lookup — in-process cache, 4 h TTL, backoff
+docker-compose.yml
+.env.example
 Dockerfile
 requirements.txt
 ```
-
-One data model (`state.py`), two serializers. The webhook scheduler and REST
-endpoint both read from the same in-memory `State` object.
 
 ---
 
 ## Display concepts
 
-### List view (webhook)
+### Radar + stats layout
 
 ```
-BAW123  A320  35000ft  450kt  ↗  LHR→AMS  ████░
-~EZY42  A319  12000ft  380kt  ↑            ██░░░
-        C172   2500ft   95kt  ↖
-
-Plane count (2h)          Range (2h)
-▂▃▄▆▇█▇▅▄▃▂▄▅▇          ▃▄▅▆▇█▇▅▄▃▅▆
-
-42 ac · 8 MLAT · 247nm today · 14:32
+┌─────────────────────────────┬──────────┐
+│                             │  Stats   │
+│                             │          │
+│       Radar  (70 × 70%)     │  42 ac   │
+│                             │  8 MLAT  │
+│                             │ 247nm ↑  │
+│                             │ 1250 m/s │
+├─────────────────────────────┴──────────┤
+│  ▂▃▄▆▇█▇▅▄▃▂▄▅▇   ▃▄▅▆▇█▇▅▄▃▅▆       │
+│  Planes (2h)       Range (2h)   14:32  │
+└────────────────────────────────────────┘
 ```
 
-`~` prefix = MLAT (interpolated position). Progress bar = route completion.
-Brightness = altitude. Row `⚠` = emergency.
+- **Radar panel** — 70% width × 70% height. CSS absolute-positioned dots projected
+  from lat/lon (`ac[6]`/`ac[7]`). Feeder at centre (`fc`). Trail dots smaller
+  behind each plane symbol. Scale configurable via plugin setting.
+- **Stats panel** — right strip (~30% width). Counts, max range, msg rate,
+  emergency badge if active.
+- **Graph panel** — bottom strip (~30% height). Dual sparklines from `hn` / `hr`.
+  Window label matches `HISTORY_TIMEFRAME`. Timestamp bottom-right, timezone-converted
+  in Liquid from the UTC `ts` value.
 
-### Radar view (REST / BYOS)
-
-CSS absolute-positioned dots projected from lat/lon. Trail dots rendered smaller
-behind each plane symbol. Center = plugin settings lat/lon. Scale configurable.
+Dot brightness = altitude band. `⚠` overlay = emergency. `~` = MLAT source.
 
 ---
 
 ## Open questions
 
 - Route enrichment (adsbdb) — include in v1 or ship without and add later?
-- Airport markers — include in REST v1, skip webhook entirely
-- TRMNL+ auto-detection — configure tier in env or detect from 429 responses?
-- Radar view — webhook template or REST/BYOS only?
