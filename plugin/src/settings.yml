@@ -56,11 +56,13 @@ custom_fields:
   field_type: string
   name: Radar Center Latitude
   description: Latitude to center the radar map on. Leave blank to use your feeder position. Useful when most of your traffic is in one direction.
+  help_text: Find coordinates at <a href="https://www.latlong.net/" target="_blank">latlong.net</a>
   optional: true
 - keyname: center_lon
   field_type: string
   name: Radar Center Longitude
   description: Longitude to center the radar map on. Leave blank to use your feeder position.
+  help_text: Find coordinates at <a href="https://www.latlong.net/" target="_blank">latlong.net</a>
   optional: true
 name: ADS-B Ultrafeeder
 refresh_interval: 15

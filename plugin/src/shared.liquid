@@ -44,6 +44,20 @@
 
     {% if s[1] > 0 %}<span class="label label--inverted" style="position:absolute;top:8px;right:8px;z-index:10;">{{ s[1] }} MLAT</span>{% endif %}
 
+    {% if view == 1 and hm != blank %}
+    {{/* Top overlay — msg/s, bars hang downward */}}
+    <div style="position:absolute;top:0;left:0;right:0;background:rgba(0,0,0,0.60);z-index:5;padding:4px 6px 0 6px;">
+      <div style="display:flex;gap:1px;align-items:flex-start;height:36px;">
+        {% for v in hm %}{% assign _bar = v | times: 100 | divided_by: _hm_max %}<div style="flex:1;background:#fff;opacity:0.65;height:{{ _bar }}%;min-height:1px;"></div>{% endfor %}
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:2px 0 3px;">
+        <span style="font-size:10px;color:#888;">{{ _ts_start_str }}</span>
+        <span style="font-size:11px;color:#fff;font-weight:bold;">msg/s · {{ s[4] }}</span>
+        <span style="font-size:10px;color:#aaa;font-weight:bold;">{{ _time_str }}</span>
+      </div>
+    </div>
+    {% endif %}
+
     {% if view == 1 and hn != blank %}
     <div style="position:absolute;bottom:0;left:0;right:0;display:flex;background:rgba(0,0,0,0.72);z-index:5;">
 
@@ -61,24 +75,6 @@
         <div style="display:flex;justify-content:space-between;margin-top:3px;padding-left:23px;">
           <span style="font-size:10px;color:#888;">{{ _ts_start_str }}</span>
           <span style="font-size:11px;color:#fff;font-weight:bold;">✈ planes</span>
-          <span style="font-size:10px;color:#aaa;font-weight:bold;">{{ _time_str }}</span>
-        </div>
-      </div>
-
-      {{/* Middle chart — message rate, Y-axis on left */}}
-      <div style="flex:1;display:flex;flex-direction:column;padding:6px 6px 4px 6px;border-right:1px solid rgba(255,255,255,0.15);">
-        <div style="display:flex;gap:3px;align-items:flex-end;height:44px;">
-          <div style="display:flex;flex-direction:column;justify-content:space-between;height:100%;min-width:20px;text-align:right;padding-right:3px;">
-            <span style="font-size:10px;font-weight:bold;color:#fff;line-height:1;background:rgba(0,0,0,0.5);padding:0 2px;border-radius:2px;">{{ hm_max }}</span>
-            <span style="font-size:10px;color:#aaa;line-height:1;">0</span>
-          </div>
-          <div style="flex:1;display:flex;align-items:flex-end;gap:1px;height:100%;">
-            {% for v in hm %}{% assign _bar = v | times: 100 | divided_by: _hm_max %}<div style="flex:1;background:#fff;opacity:0.65;height:{{ _bar }}%;min-height:1px;"></div>{% endfor %}
-          </div>
-        </div>
-        <div style="display:flex;justify-content:space-between;margin-top:3px;padding-left:23px;">
-          <span style="font-size:10px;color:#888;">{{ _ts_start_str }}</span>
-          <span style="font-size:11px;color:#fff;font-weight:bold;">msg/s</span>
           <span style="font-size:10px;color:#aaa;font-weight:bold;">{{ _time_str }}</span>
         </div>
       </div>
@@ -339,7 +335,7 @@
     var layer = document.getElementById('rplanes-' + inst);
     var outlineLayer = document.getElementById('routlines-' + inst);
     if (!layer || !outlineLayer) return;
-    var sc = view >= 3 ? 1.1 : 1.6;
+    var sc = view >= 3 ? 0.8 : 1.1;
     var iconHalf = 12 * sc;
     var planeColor = darkMode ? '#ffffff' : '#000000';
     var lineColor = darkMode ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)';
