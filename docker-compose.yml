@@ -1,16 +1,16 @@
 services:
-  backend:
+  trmnl-adsb-ultrafeeder:
     build: ./trmnl-adsb-ultrafeeder-plugin/backend
     container_name: trmnl-adsb-backend
     restart: unless-stopped
     env_file: .env
-    ports:
-      - "${BACKEND_PORT:-8080}:8080"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
       timeout: 5s
       retries: 3
+    depends_on:
+      - ultrafeeder
     deploy:
       resources:
         limits:
