@@ -17,8 +17,8 @@ _sem: asyncio.Semaphore | None = None
 
 
 def _valid(cs: str) -> bool:
-    # Relaxed to allow 1-3 letters followed by a digit (supports N-numbers and 2-char airlines)
-    return bool(cs and len(cs) >= 3 and re.match(r'^[A-Z]{1,3}\d', cs))
+    # Broadened: Allow 1-5 letters (registrations) or standard airline codes
+    return bool(cs and len(cs) >= 3 and re.match(r'^[A-Z]{1,5}', cs))
 
 
 def _label(airport: dict, mode: str) -> str:
@@ -58,6 +58,8 @@ async def _fetch_route(cs: str, session: aiohttp.ClientSession) -> dict | None:
                     fr = (await resp.json()).get('response', {}).get('flightroute')
                     route = {'origin': fr.get('origin') or {}, 'destination': fr.get('destination') or {}} if fr else None
                     _route_cache[cs] = (route, time.monotonic() + TTL)
+                    if route:
+                        log.info('enriched route: %s', cs)
                     return route
                 _route_cache[cs] = (None, time.monotonic() + TTL)
     except Exception as exc:
@@ -90,6 +92,8 @@ async def _fetch_ac(hex_code: str, session: aiohttp.ClientSession) -> str | None
                 if resp.status == 200:
                     ac_type = (await resp.json()).get('response', {}).get('icao_type')
                     _ac_cache[hex_code] = (ac_type, time.monotonic() + TTL)
+                    if ac_type:
+                        log.info('enriched type: %s -> %s', hex_code, ac_type)
                     return ac_type
                 _ac_cache[hex_code] = (None, time.monotonic() + TTL)
     except Exception as exc:
