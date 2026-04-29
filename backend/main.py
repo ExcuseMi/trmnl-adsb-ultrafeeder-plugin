@@ -50,6 +50,7 @@ async def _poll_and_push() -> None:
 
             parsed = parse_aircraft(raw_ac, FEEDER_LAT, FEEDER_LON)
             msg_rate, strong, pos_min, gain_db = parse_rf_stats(raw_stats)
+            log.info('rf stats: msg/s=%d strong=%d pos=%d gain=%ddB', msg_rate, strong, pos_min, gain_db)
 
             await enrich(parsed, ROUTE_DISPLAY, session)
 

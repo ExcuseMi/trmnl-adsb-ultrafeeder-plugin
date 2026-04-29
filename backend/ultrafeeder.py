@@ -53,7 +53,7 @@ async def fetch_stats(session: aiohttp.ClientSession, base_url: str) -> dict:
             resp.raise_for_status()
             return await resp.json(content_type=None)
     except Exception as exc:
-        log.debug('fetch_stats failed: %s', exc)
+        log.warning('fetch_stats failed: %s', exc)
         return {}
 
 
