@@ -17,6 +17,7 @@ class AppState:
         self.aircraft: dict[str, dict] = {}
         self.hn_history: deque = deque(maxlen=max_history)
         self.hr_history: deque = deque(maxlen=max_history)
+        self.hm_history: deque = deque(maxlen=max_history)
         self._ts_history: deque = deque(maxlen=max_history)
         self._day_max_range: float = 0.0
         self._day_date: str = ''
@@ -64,6 +65,7 @@ class AppState:
 
         self.hn_history.append(len(parsed))
         self.hr_history.append(int(max_range))
+        self.hm_history.append(msg_rate)
         self._ts_history.append(self.timestamp)
 
         if max_range > self._day_max_range:
@@ -84,6 +86,8 @@ class AppState:
                 self.hn_history.append(v)
             for v in d.get('hr', [])[-self._max_history:]:
                 self.hr_history.append(v)
+            for v in d.get('hm', [])[-self._max_history:]:
+                self.hm_history.append(v)
             for v in d.get('ts', [])[-self._max_history:]:
                 self._ts_history.append(v)
             self._day_max_range = float(d.get('day_max_range', 0.0))
@@ -100,6 +104,7 @@ class AppState:
         d = {
             'hn': list(self.hn_history),
             'hr': list(self.hr_history),
+            'hm': list(self.hm_history),
             'ts': list(self._ts_history),
             'day_max_range': self._day_max_range,
             'day_date': self._day_date,

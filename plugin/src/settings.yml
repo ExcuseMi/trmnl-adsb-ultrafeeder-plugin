@@ -52,5 +52,15 @@ custom_fields:
   - 300 nm (~555 km): '300'
   default: '200'
   optional: true
+- keyname: center_lat
+  field_type: text
+  name: Radar Center Latitude
+  description: Latitude to center the radar map on. Leave blank to use your feeder position. Useful when most of your traffic is in one direction.
+  optional: true
+- keyname: center_lon
+  field_type: text
+  name: Radar Center Longitude
+  description: Longitude to center the radar map on. Leave blank to use your feeder position.
+  optional: true
 name: ADS-B Ultrafeeder
 refresh_interval: 15
