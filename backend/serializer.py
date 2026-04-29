@@ -30,30 +30,24 @@ def _build_entry(plane: dict, include_trail: bool) -> list:
 
     # Final safety check for generic types
     ac_type = (plane.get('type', '') or '').strip()
-    if ac_type.lower() in ('adsb_icao', 'mode_s', 'tis-b', 'ads-r', 'unknown'):
+    if ac_type.lower() in ('adsb_icao', 'mode_s', 'tis-b', 'ads-r', 'unknown', ''):
         ac_type = ''
 
-    entry = [
-        plane.get('callsign', '') or '',
-        ac_type,
-        plane.get('altitude', 0),
-        plane.get('speed', 0),
-        plane.get('track', 0),
-        plane.get('source', 0),
-        round(plane['lat'], 4),
-        round(plane['lon'], 4),
-        trail,    # Index 8
-        route,    # Index 9
-        progress, # Index 10
-        emergency, # Index 11
+    # Return exactly 12 elements to ensure index stability in Liquid template
+    return [
+        plane.get('callsign', '') or '', # 0
+        ac_type,                         # 1
+        plane.get('altitude', 0),        # 2
+        plane.get('speed', 0),           # 3
+        plane.get('track', 0),           # 4
+        plane.get('source', 0),          # 5
+        round(plane['lat'], 4),          # 6
+        round(plane['lon'], 4),          # 7
+        trail,                           # 8: trail
+        route,                           # 9: route
+        progress,                        # 10: progress
+        emergency                        # 11: emergency
     ]
-
-    # ONLY pop from the end if the value is None. 
-    # This keeps indices stable if values in the middle (like trail) are None.
-    while len(entry) > 8 and entry[-1] is None:
-        entry.pop()
-
-    return entry
 
 
 def build_payload(state, tier: str = 'standard', trails_enabled: bool = True) -> dict:
