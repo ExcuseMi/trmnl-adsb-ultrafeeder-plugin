@@ -72,6 +72,7 @@ async def _fetch_ac(hex_code: str, session: aiohttp.ClientSession) -> str | None
     if _sem is None:
         _sem = asyncio.Semaphore(3)
 
+    hex_code = hex_code.upper() # API expects uppercase HEX
     if time.monotonic() < _backoff_until:
         return None
 
@@ -140,6 +141,9 @@ async def enrich(aircraft: list[dict], mode: str, session: aiohttp.ClientSession
             ac_tasks.append(_fetch_ac(a['hex'], session))
         else:
             ac_tasks.append(asyncio.sleep(0, result=None))
+        
+        # Small stagger to prevent burst
+        await asyncio.sleep(0.1)
 
     # 2. Execute
     results = await asyncio.gather(*(route_tasks + ac_tasks), return_exceptions=True)
