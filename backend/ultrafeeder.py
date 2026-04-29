@@ -77,7 +77,7 @@ def parse_aircraft(raw: list[dict], feeder_lat: float, feeder_lon: float) -> lis
 
         raw_type = (ac.get('t') or ac.get('type') or '').strip()
         if raw_type.lower() in ('adsb_icao', 'mode_s', 'tis-b', 'ads-r', 'unknown', ''):
-            raw_type = ac.get('category', '')
+            raw_type = ''  # let adsbdb enrichment fill in proper type + desc
 
         result.append({
             'hex':       ac.get('hex', ''),

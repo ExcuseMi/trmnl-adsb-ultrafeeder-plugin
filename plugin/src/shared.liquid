@@ -409,12 +409,12 @@
       var altStr = formatAltitude(p[2]);
       var speedStr = p[3] != null ? ' - ' + formatSpeed(p[3]) : '';
       var altSpeedStr = altStr + speedStr;
-      var origin = p[9] || '';
-      var dest   = p[10] || '';
-      var desc   = p[13] || '';
+      var origin  = p[9]  || '';
+      var dest    = p[10] || '';
+      var acInfo  = (p[13] || type || '').trim();  // desc preferred, type code as fallback
       var routeStr = origin && dest ? origin + '>' + dest : (origin || dest);
       var pad = 4;
-      var rowCount = (lbl ? 1 : 0) + (type ? 1 : 0) + (routeStr ? 1 : 0) + (desc ? 1 : 0) + 1;
+      var rowCount = (lbl ? 1 : 0) + (acInfo ? 1 : 0) + (routeStr ? 1 : 0) + 1;
       var blockH = rowCount * 14;
 
       function measureText(text, fontSize, fontWeight) {
@@ -426,7 +426,7 @@
         return w;
       }
 
-      var maxWidth = Math.max(measureText(lbl, '12', 'bold'), measureText(type, '11', null), measureText(altSpeedStr, '11', null), measureText(routeStr, '11', null), measureText(desc, '10', null), 20) + pad;
+      var maxWidth = Math.max(measureText(lbl, '12', 'bold'), measureText(acInfo, '11', null), measureText(altSpeedStr, '11', null), measureText(routeStr, '11', null), 20) + pad;
       var anchor = null;
       for (var i = 0; i < ANCHORS.length; i++) {
         var a = ANCHORS[i];
@@ -463,8 +463,7 @@
       var rowY = ly;
       if (SQUAWK_LABELS[sq]) { rowY += 14; addRow(SQUAWK_LABELS[sq], rowY, '12', 'bold', '#ffffff'); }
       if (lbl) { rowY += 14; addRow(lbl, rowY, '12', 'bold', '#ffffff'); }
-      if (type) { rowY += 14; addRow(type, rowY, '11', null, '#cccccc'); }
-      if (desc) { rowY += 14; addRow(desc, rowY, '10', null, '#999999'); }
+      if (acInfo) { rowY += 14; addRow(acInfo, rowY, '11', null, '#cccccc'); }
       if (routeStr) {
         rowY += 14; addRow(routeStr, rowY, '11', null, '#aaaaaa');
         var progress = p[11];

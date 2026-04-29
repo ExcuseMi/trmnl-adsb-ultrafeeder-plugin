@@ -95,7 +95,14 @@ async def _fetch_ac(hex_code: str, session: aiohttp.ClientSession) -> tuple[str 
                     data = (await resp.json()).get('response', {})
                     ac_data = data.get('aircraft') or data
                     icao_type = ac_data.get('icao_type') or None
-                    desc = (ac_data.get('type') or ac_data.get('description') or None)
+                    manufacturer = (ac_data.get('manufacturer') or '').strip()
+                    model = (ac_data.get('type') or ac_data.get('description') or '').strip()
+                    if manufacturer and model and not model.lower().startswith(manufacturer.lower()):
+                        desc: str | None = f'{manufacturer} {model}'
+                    else:
+                        desc = model or manufacturer or None
+                    if desc:
+                        desc = desc[:32]
                     result = (icao_type, desc)
                     _ac_cache[hex_code] = (result, time.monotonic() + TTL)
                     if icao_type:
@@ -142,7 +149,7 @@ async def enrich(aircraft: list[dict], mode: str, session: aiohttp.ClientSession
         else:
             route_tasks.append(asyncio.sleep(0, result=None))
 
-        if not a.get('type'):
+        if not a.get('type') or not a.get('desc'):
             ac_tasks.append(_fetch_ac(a['hex'], session))
         else:
             ac_tasks.append(asyncio.sleep(0, result=None))
