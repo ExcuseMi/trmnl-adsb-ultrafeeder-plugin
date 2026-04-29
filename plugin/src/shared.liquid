@@ -232,7 +232,7 @@
 
   function getIconKey(p) {
     var type = (p[1] || '').toUpperCase();
-    var desc = (p[10] || '').toLowerCase();
+    var desc = (p[11] || '').toLowerCase();
     if (desc.indexOf('heli') !== -1) return 'CAT_A7';
     if (/^A3(1[89]|2[01]|20)$/.test(type)) return 'A320';
     if (/^A33[0-9]$/.test(type)) return 'A330';
