@@ -3,11 +3,11 @@
   "example_payload": {
     "merge_variables": {
       "ac": [
-        ["BAW123", "A320", 35000, 450, 245, 0, 51.16, 4.48, [[-13, -18], [-26, -36]], "LHR", "AMS", 45, "Airbus A320neo", 0],
-        ["EZY42V", "A319", 12000, 380, 178, 1, 51.09, 4.60, 0, 0, 0, 0, 0, 0],
-        ["", "C172", 2500, 95, 312, 0, 51.21, 4.49, 0, 0, 0, 0, 0, 0],
-        ["OPS999", "B738", 18000, 310, 90, 0, 51.15, 4.62, 0, 0, 0, 0, 0, "7700"],
-        ["DLH441", "A321", 38000, 480, 60, 0, 51.08, 4.51, 0, "FRA", "AMS", 72, "Airbus A321", 0]
+        ["BAW123", "A320", 35000, 450, 245, 0, 51.16, 4.48, "LHR", "AMS", "Airbus A320neo"],
+        ["EZY42V", "A319", 12000, 380, 178, 1, 51.09, 4.60, 0, 0, 0],
+        ["", "C172", 2500, 95, 312, 0, 51.21, 4.49, 0, 0, 0],
+        ["OPS999", "B738", 18000, 310, 90, 0, 51.15, 4.62, 0, 0, 0],
+        ["DLH441", "A321", 38000, 480, 60, 0, 51.08, 4.51, "FRA", "AMS", "Airbus A321"]
       ],
       "hn": [38, 42, 35, 41, 44, 40, 37, 39, 42, 41, 38, 36, 33, 35, 38, 40, 43, 44, 42, 39, 37, 40, 42, 44],
       "hr": [180, 175, 168, 182, 190, 185, 178, 172, 180, 183, 188, 175, 170, 168, 172, 175, 180, 185, 180, 178, 175, 180, 185, 190],
@@ -27,13 +27,10 @@
     "5": "source: 0=ADS-B 1=MLAT 2=TIS-B",
     "6": "latitude (4dp)",
     "7": "longitude (4dp)",
-    "8": "trail [[dlat,dlon],...] in 0.001° — closest planes only, or 0 if absent",
-    "9": "origin airport label (e.g. LHR or LONDON (GB)) — or 0 if absent",
-    "10": "destination airport label — or 0 if absent",
-    "11": "route progress 0-100 — or 0 if absent",
-    "12": "aircraft description (e.g. Airbus A320neo) — or 0 if absent",
-    "13": "emergency squawk or ADS-B code — or 0 if absent",
-    "_note_sentinel": "Absent optional fields use 0 (not null). TRMNL strips null from JSON arrays, which would collapse indices [8]-[13] and cause all fields after the first absent one to misalign."
+    "8": "origin airport label (e.g. LHR) — or 0 if absent",
+    "9": "destination airport label — or 0 if absent",
+    "10": "aircraft description (e.g. Airbus A320neo) — or 0 if absent",
+    "_note_sentinel": "Absent optional fields [8]-[10] use 0 (not null). TRMNL strips null from JSON arrays, which would collapse indices and shift every field after the first absent one."
   },
   "fc_fields": {
     "0": "feeder latitude",

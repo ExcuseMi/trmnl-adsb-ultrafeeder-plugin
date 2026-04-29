@@ -41,6 +41,7 @@ def build_payload(state, tier: str = 'standard') -> dict:
     ts = state.timestamp
     hn_max = max(hn) if hn else 0
     hr_max = max(hr) if hr else 0
+    ts_start = state.ts_start
     aircraft = state.sorted_aircraft()
 
     def total_size(ac_list):
@@ -48,6 +49,7 @@ def build_payload(state, tier: str = 'standard') -> dict:
             'merge_variables': {
                 'ac': ac_list, 'hn': hn, 'hr': hr, 's': s,
                 'fc': fc, 'ts': ts, 'hn_max': hn_max, 'hr_max': hr_max,
+                'ts_start': ts_start,
             }
         })
 
@@ -75,6 +77,7 @@ def build_payload(state, tier: str = 'standard') -> dict:
         'merge_variables': {
             'ac': ac_entries, 'hn': hn, 'hr': hr, 's': s,
             'fc': fc, 'ts': ts, 'hn_max': hn_max, 'hr_max': hr_max,
+            'ts_start': ts_start,
         },
         '_budget': budget,
         '_used': used,

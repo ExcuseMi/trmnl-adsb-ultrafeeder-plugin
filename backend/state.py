@@ -17,6 +17,7 @@ class AppState:
         self.aircraft: dict[str, dict] = {}
         self.hn_history: deque = deque(maxlen=max_history)
         self.hr_history: deque = deque(maxlen=max_history)
+        self._ts_history: deque = deque(maxlen=max_history)
         self._day_max_range: float = 0.0
         self._day_date: str = ''
         self.timestamp: int = 0
@@ -27,6 +28,10 @@ class AppState:
     @property
     def stats(self) -> list:
         return self._stats
+
+    @property
+    def ts_start(self) -> int:
+        return self._ts_history[0] if self._ts_history else 0
 
     def update(self, parsed: list[dict], msg_rate: int) -> None:
         now = datetime.now(timezone.utc)
@@ -59,6 +64,7 @@ class AppState:
 
         self.hn_history.append(len(parsed))
         self.hr_history.append(int(max_range))
+        self._ts_history.append(self.timestamp)
 
         if max_range > self._day_max_range:
             self._day_max_range = max_range
@@ -78,6 +84,8 @@ class AppState:
                 self.hn_history.append(v)
             for v in d.get('hr', [])[-self._max_history:]:
                 self.hr_history.append(v)
+            for v in d.get('ts', [])[-self._max_history:]:
+                self._ts_history.append(v)
             self._day_max_range = float(d.get('day_max_range', 0.0))
             self._day_date = d.get('day_date', '')
             log.info('state: loaded %d history points from %s', len(self.hn_history), self._state_path)
@@ -92,6 +100,7 @@ class AppState:
         d = {
             'hn': list(self.hn_history),
             'hr': list(self.hr_history),
+            'ts': list(self._ts_history),
             'day_max_range': self._day_max_range,
             'day_date': self._day_date,
         }

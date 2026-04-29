@@ -17,6 +17,7 @@
 {% assign _hr_max = hr_max | default: 1 | plus: 0 %}
 {% assign _local_ts = ts | plus: trmnl.user.utc_offset %}
 {% assign _time_str = _local_ts | date: "%H:%M" %}
+{% assign _ts_start_str = ts_start | plus: trmnl.user.utc_offset | date: "%H:%M" %}
 
 <div class="layout layout--stretch gap--none m--0 p--0" data-inst="{{ inst }}"
      style="flex-direction:column;overflow:hidden;">
@@ -26,7 +27,6 @@
   <div class="layout layout--col gap--small" style="justify-content:center;text-align:center;flex:1;">
     <div class="value value--large">{{ s[0] }}</div>
     <div class="label label--small">{{ s[1] }} MLAT · {{ s[2] }} nm · {{ _time_str }}</div>
-    {% for p in ac %}{% if p[13] and p[13] != 0 %}<div class="label label--error label--small">⚠ {{ p[0] }}</div>{% endif %}{% endfor %}
   </div>
 
   {% else %}
@@ -58,7 +58,7 @@
           </div>
         </div>
         <div style="display:flex;justify-content:space-between;margin-top:3px;padding-left:23px;">
-          <span style="font-size:10px;color:#888;">oldest</span>
+          <span style="font-size:10px;color:#888;">{{ _ts_start_str }}</span>
           <span style="font-size:11px;color:#fff;font-weight:bold;">✈ planes</span>
           <span style="font-size:10px;color:#aaa;font-weight:bold;">{{ _time_str }}</span>
         </div>
@@ -76,7 +76,7 @@
           </div>
         </div>
         <div style="display:flex;justify-content:space-between;margin-top:3px;padding-right:29px;">
-          <span style="font-size:10px;color:#888;">oldest</span>
+          <span style="font-size:10px;color:#888;">{{ _ts_start_str }}</span>
           <span style="font-size:11px;color:#fff;font-weight:bold;">range nm</span>
           <span style="font-size:10px;color:#aaa;font-weight:bold;">{{ _time_str }}</span>
         </div>
@@ -232,7 +232,7 @@
 
   function getIconKey(p) {
     var type = (p[1] || '').toUpperCase();
-    var desc = (p[12] || '').toLowerCase();
+    var desc = (p[10] || '').toLowerCase();
     if (desc.indexOf('heli') !== -1) return 'CAT_A7';
     if (/^A3(1[89]|2[01]|20)$/.test(type)) return 'A320';
     if (/^A33[0-9]$/.test(type)) return 'A330';
@@ -386,8 +386,6 @@
       }
     }
 
-    var SQUAWK_LABELS = { '7500': 'HIJACK', '7600': 'NORDO', '7700': 'MAYDAY' };
-
     visible.forEach(function(v) {
       var p = v.p, pos = { x: v.x, y: v.y };
       var track = p[4] != null ? p[4] : 0;
@@ -404,49 +402,28 @@
       og.appendChild(ou);
       outlineLayer.appendChild(og);
 
-      var sq = p[13] || '';
-      if (SQUAWK_LABELS[sq]) {
-        var ring = document.createElementNS(ns, 'circle');
-        ring.setAttribute('cx', pos.x.toFixed(0)); ring.setAttribute('cy', pos.y.toFixed(0));
-        ring.setAttribute('r', (iconHalf + 6).toFixed(0)); ring.setAttribute('fill', 'none');
-        ring.setAttribute('stroke', '#000000'); ring.setAttribute('stroke-width', '3'); ring.setAttribute('stroke-dasharray', '4 3');
-        outlineLayer.appendChild(ring);
-      }
-
-      // Trail
-      var trail = Array.isArray(p[8]) ? p[8] : null;
-      if (trail) {
-        trail.forEach(function(d, ti) {
-          var tp = ll2px(p[6] + d[0] * 0.001, p[7] + d[1] * 0.001);
-          outlineLayer.appendChild(document.createElementNS(ns, 'circle')).setAttribute('cx', tp.x);
-          outlineLayer.lastChild.setAttribute('cy', tp.y);
-          outlineLayer.lastChild.setAttribute('r', 2);
-          outlineLayer.lastChild.setAttribute('fill', altPlaneColor(p[2]));
-          outlineLayer.lastChild.setAttribute('opacity', Math.max(0.06, 0.8 - ti * 0.1).toFixed(2));
-        });
-      }
-
       var g = document.createElementNS(ns, 'g');
       g.setAttribute('transform', 'translate('+pos.x.toFixed(0)+','+pos.y.toFixed(0)+') rotate('+track+') scale('+sc+')');
       var use = document.createElementNS(ns, 'use');
       use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '#icon-'+iconKey+'-'+inst);
       use.setAttribute('width','24'); use.setAttribute('height','24');
       use.setAttribute('x','-12'); use.setAttribute('y','-12');
-      use.setAttribute('fill', SQUAWK_LABELS[sq] ? (darkMode ? '#ffffff' : '#000000') : altPlaneColor(p[2]));
+      use.setAttribute('fill', altPlaneColor(p[2]));
       use.setAttribute('stroke', 'none');
       g.appendChild(use);
       layer.appendChild(g);
 
       // Labels
+      // [0]=callsign [1]=type [2]=alt [3]=spd [4]=trk [5]=src [6]=lat [7]=lon [8]=origin [9]=dest [10]=desc
       var lbl = (p[0] || '').trim();
       var type = (p[1] || '').trim();
       var altStr = formatAltitude(p[2]);
-      var speedStr = p[3] != null ? ' - ' + formatSpeed(p[3]) : '';
+      var speedStr = p[3] ? ' - ' + formatSpeed(p[3]) : '';
       var altSpeedStr = altStr + speedStr;
       function validAirport(s) { return s && /[A-Z]/i.test(s); }
-      var origin  = validAirport(p[9])  ? p[9]  : '';
-      var dest    = validAirport(p[10]) ? p[10] : '';
-      var acInfo  = (p[12] || type || '').trim();
+      var origin  = validAirport(p[8]) ? p[8] : '';
+      var dest    = validAirport(p[9]) ? p[9] : '';
+      var acInfo  = (p[10] || type || '').trim();
       var routeStr = origin && dest ? origin + '>' + dest : (origin || dest);
       var pad = 4;
       var rowCount = (lbl ? 1 : 0) + (acInfo ? 1 : 0) + (routeStr ? 1 : 0) + 1;
@@ -496,25 +473,9 @@
       }
 
       var rowY = ly;
-      if (SQUAWK_LABELS[sq]) { rowY += 14; addRow(SQUAWK_LABELS[sq], rowY, '12', 'bold', '#ffffff'); }
       if (lbl) { rowY += 14; addRow(lbl, rowY, '12', 'bold', '#ffffff'); }
       if (acInfo) { rowY += 14; addRow(acInfo, rowY, '11', null, '#cccccc'); }
-      if (routeStr) {
-        rowY += 14; addRow(routeStr, rowY, '11', null, '#aaaaaa');
-        var progress = p[11];
-        if (progress > 0) {
-          var barW = maxWidth - pad;
-          layer.appendChild(document.createElementNS(ns, 'rect')).setAttribute('x', lx);
-          layer.lastChild.setAttribute('y', rowY + 4); layer.lastChild.setAttribute('width', barW);
-          layer.lastChild.setAttribute('height', '2'); layer.lastChild.setAttribute('fill', '#444444');
-          if (progress > 0) {
-            layer.appendChild(document.createElementNS(ns, 'rect')).setAttribute('x', lx);
-            layer.lastChild.setAttribute('y', rowY + 4); layer.lastChild.setAttribute('width', Math.round(barW * progress / 100));
-            layer.lastChild.setAttribute('height', '2'); layer.lastChild.setAttribute('fill', '#ffffff');
-          }
-          rowY += 6;
-        }
-      }
+      if (routeStr) { rowY += 14; addRow(routeStr, rowY, '11', null, '#aaaaaa'); }
       rowY += 14; addRow(altSpeedStr, rowY, '11', null, '#ffffff');
     });
   }
