@@ -1,4 +1,5 @@
 import json
+import math
 from collections import deque
 
 TIER_BUDGET = {'standard': 2048, 'plus': 5120}
@@ -53,12 +54,20 @@ def build_payload(state, tier: str = 'standard', trails_enabled: bool = True) ->
     hn = list(state.hn_history)
     hr = list(state.hr_history)
     s = state.stats
-    fc = [state.feeder_lat, state.feeder_lon]
+    cos_f = round(math.cos(math.radians(state.feeder_lat)), 6)
+    fc = [state.feeder_lat, state.feeder_lon, cos_f]
     ts = state.timestamp
+    hn_max = max(hn) if hn else 0
+    hr_max = max(hr) if hr else 0
     aircraft = state.sorted_aircraft()
 
     def total_size(ac_list):
-        return _size({'merge_variables': {'ac': ac_list, 'hn': hn, 'hr': hr, 's': s, 'fc': fc, 'ts': ts}})
+        return _size({
+            'merge_variables': {
+                'ac': ac_list, 'hn': hn, 'hr': hr, 's': s,
+                'fc': fc, 'ts': ts, 'hn_max': hn_max, 'hr_max': hr_max,
+            }
+        })
 
     # Phase 1: add planes without trails
     ac_entries: list = []
@@ -93,7 +102,10 @@ def build_payload(state, tier: str = 'standard', trails_enabled: bool = True) ->
     used = total_size(ac_entries)
 
     return {
-        'merge_variables': {'ac': ac_entries, 'hn': hn, 'hr': hr, 's': s, 'fc': fc, 'ts': ts},
+        'merge_variables': {
+            'ac': ac_entries, 'hn': hn, 'hr': hr, 's': s,
+            'fc': fc, 'ts': ts, 'hn_max': hn_max, 'hr_max': hr_max,
+        },
         '_budget': budget,
         '_used': used,
     }

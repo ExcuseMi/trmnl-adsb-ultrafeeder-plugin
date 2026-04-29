@@ -23,6 +23,7 @@ POLL_INTERVAL       = int(os.getenv('POLL_INTERVAL_SECONDS', '300'))
 TRAILS_ENABLED      = os.getenv('TRAILS_ENABLED', 'true').lower() == 'true'
 HISTORY_TIMEFRAME   = os.getenv('HISTORY_TIMEFRAME', '2h')
 ROUTE_DISPLAY       = os.getenv('ROUTE_DISPLAY', 'codes')
+STATE_PATH          = os.getenv('STATE_PATH', '/data/state.json')
 
 _state: AppState | None = None
 _last_poll: float = 0.0
@@ -91,7 +92,7 @@ async def startup() -> None:
     global _state
     tf_s = _parse_timeframe(HISTORY_TIMEFRAME)
     max_points = max(1, tf_s // POLL_INTERVAL)
-    _state = AppState(FEEDER_LAT, FEEDER_LON, max_points)
+    _state = AppState(FEEDER_LAT, FEEDER_LON, max_points, STATE_PATH)
     log.info(
         'start: feeder=(%s,%s) tier=%s interval=%ds history=%d pts',
         FEEDER_LAT, FEEDER_LON, TIER, POLL_INTERVAL, max_points,

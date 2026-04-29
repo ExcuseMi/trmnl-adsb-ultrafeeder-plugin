@@ -1,6 +1,6 @@
 {% template main %}
 
-{% if data.planes == blank %}
+{% if ac == blank %}
 
 <div class="layout layout--col gap--small">
   <div class="description">No aircraft data — check ultrafeeder connection.</div>
@@ -13,6 +13,8 @@
 {% else %}
 
 {% assign inst = "adsb_" | append_random %}
+{% assign _hn_max = hn_max | default: 1 | plus: 0 %}
+{% assign _hr_max = hr_max | default: 1 | plus: 0 %}
 
 <div class="layout layout--stretch gap--none m--0 p--0" data-inst="{{ inst }}"
      style="flex-direction:column;overflow:hidden;">
@@ -20,9 +22,9 @@
   {% if view == 4 %}
 
   <div class="layout layout--col gap--small" style="justify-content:center;text-align:center;flex:1;">
-    <div class="value value--large">{{ data.stats.total }}</div>
-    <div class="label label--small">{{ data.stats.mlat }} MLAT · {{ data.stats.range }} nm · {{ data.ts }}</div>
-    {% for p in data.planes %}{% if p.em %}<div class="label label--error label--small">⚠ {{ p.cs }}</div>{% endif %}{% endfor %}
+    <div class="value value--large">{{ s[0] }}</div>
+    <div class="label label--small">{{ s[1] }} MLAT · {{ s[2] }} nm · {{ ts }}</div>
+    {% for p in ac %}{% if p[11] %}<div class="label label--error label--small">⚠ {{ p[0] }}</div>{% endif %}{% endfor %}
   </div>
 
   {% else %}
@@ -30,26 +32,20 @@
   <div style="display:flex;{% if view == 1 %}flex:7{% else %}flex:1{% endif %};min-height:0;overflow:hidden;">
 
     <div id="radar-{{ inst }}" style="flex:1;position:relative;overflow:hidden;min-width:0;">
-      <svg id="rsvg-{{ inst }}" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;"></svg>
+      <svg id="rsvg-{{ inst }}" style="position:absolute;inset:0;width:100%;height:100%;"></svg>
     </div>
 
     {% unless view == 3 %}
     <div style="width:88px;flex:0 0 88px;padding:6px 4px 6px 6px;display:flex;flex-direction:column;justify-content:space-between;border-left:1px solid currentColor;overflow:hidden;">
       <div style="display:flex;flex-direction:column;gap:3px;">
-        <div class="label label--small" style="font-weight:bold;">{{ data.stats.total }} ac</div>
-        {% if data.stats.mlat > 0 %}
-        <div class="label label--small">{{ data.stats.mlat }} MLAT</div>
-        {% endif %}
-        <div class="label label--small">{{ data.stats.range }} nm</div>
-        {% if data.stats.dayRange > data.stats.range %}
-        <div class="label label--small" style="opacity:0.6;">↑{{ data.stats.dayRange }} nm</div>
-        {% endif %}
-        {% if data.stats.msgRate > 0 %}
-        <div class="label label--small" style="opacity:0.6;">{{ data.stats.msgRate }}/s</div>
-        {% endif %}
-        {% for p in data.planes %}{% if p.em %}<div class="label label--error label--small">⚠ {{ p.cs }}</div>{% endif %}{% endfor %}
+        <div class="label label--small" style="font-weight:bold;">{{ s[0] }} ac</div>
+        {% if s[1] > 0 %}<div class="label label--small">{{ s[1] }} MLAT</div>{% endif %}
+        <div class="label label--small">{{ s[2] }} nm</div>
+        {% if s[3] > s[2] %}<div class="label label--small" style="opacity:0.6;">↑{{ s[3] }} nm</div>{% endif %}
+        {% if s[4] > 0 %}<div class="label label--small" style="opacity:0.6;">{{ s[4] }}/s</div>{% endif %}
+        {% for p in ac %}{% if p[11] %}<div class="label label--error label--small">⚠ {{ p[0] }}</div>{% endif %}{% endfor %}
       </div>
-      <div class="label label--small" style="opacity:0.5;">{{ data.ts }} UTC</div>
+      <div class="label label--small" style="opacity:0.5;">{{ ts }} UTC</div>
     </div>
     {% endunless %}
 
@@ -57,23 +53,19 @@
 
   {% if view == 1 %}
   <div style="flex:3;display:flex;gap:8px;padding:4px 8px;border-top:1px solid currentColor;align-items:flex-end;min-height:0;overflow:hidden;">
-    <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-height:0;overflow:hidden;">
+    <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-height:0;">
       <div style="display:flex;align-items:flex-end;gap:1px;height:28px;">
-        {% for h in data.hnBars %}
-        <div style="flex:1;background:currentColor;opacity:0.85;height:{{ h }}%;min-height:1px;"></div>
-        {% endfor %}
+        {% for v in hn %}{% assign _bar = v | times: 100 | divided_by: _hn_max %}<div style="flex:1;background:currentColor;opacity:0.85;height:{{ _bar }}%;min-height:1px;"></div>{% endfor %}
       </div>
-      <div class="label label--small" style="opacity:0.55;white-space:nowrap;">Planes · {{ data.hnMax }} max</div>
+      <div class="label label--small" style="opacity:0.55;white-space:nowrap;">Planes · {{ hn_max }} max</div>
     </div>
-    <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-height:0;overflow:hidden;">
+    <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-height:0;">
       <div style="display:flex;align-items:flex-end;gap:1px;height:28px;">
-        {% for h in data.hrBars %}
-        <div style="flex:1;background:currentColor;opacity:0.6;height:{{ h }}%;min-height:1px;"></div>
-        {% endfor %}
+        {% for v in hr %}{% assign _bar = v | times: 100 | divided_by: _hr_max %}<div style="flex:1;background:currentColor;opacity:0.6;height:{{ _bar }}%;min-height:1px;"></div>{% endfor %}
       </div>
-      <div class="label label--small" style="opacity:0.55;white-space:nowrap;">Range · {{ data.hrMax }} nm</div>
+      <div class="label label--small" style="opacity:0.55;white-space:nowrap;">Range · {{ hr_max }} nm</div>
     </div>
-    <div class="label label--small" style="opacity:0.5;align-self:flex-end;white-space:nowrap;">{{ data.ts }}</div>
+    <div class="label label--small" style="opacity:0.5;align-self:flex-end;white-space:nowrap;">{{ ts }}</div>
   </div>
   {% endif %}
 
@@ -88,83 +80,116 @@
 
 <script>
 (function () {
-  var v = {{ view | default: 1 }};
-  if (v === 4) return;
+  if ({{ view | default: 1 }} === 4) return;
 
-  var inst = '{{ inst }}';
-  var planes = {{ data.planes | json }};
+  var inst   = '{{ inst }}';
+  var ac     = {{ ac | json }};
+  var fc     = {{ fc | json }};   // [feeder_lat, feeder_lon, cos_factor]
+  var scale  = parseFloat('{{ trmnl.plugin_settings.custom_fields_values.radar_scale | default: "200" }}') || 200;
+  var unit   = '{{ trmnl.plugin_settings.custom_fields_values.unit | default: "imperial" }}';
+
   var svg = document.getElementById('rsvg-' + inst);
   if (!svg) return;
 
-  var W = svg.parentElement.offsetWidth || 300;
+  var W = svg.parentElement.offsetWidth  || 300;
   var H = svg.parentElement.offsetHeight || 200;
-  var minDim = Math.min(W, H);
   var ns = 'http://www.w3.org/2000/svg';
 
-  function el(tag, attrs) {
+  var feederLat = fc[0], feederLon = fc[1], cosF = fc[2];
+  var NM = 60;
+
+  function ll2pct(lat, lon) {
+    return {
+      x: 50 + (lon - feederLon) * cosF * NM / scale * 50,
+      y: 50 - (lat - feederLat)          * NM / scale * 50,
+    };
+  }
+
+  function svgEl(tag, attrs) {
     var e = document.createElementNS(ns, tag);
-    Object.keys(attrs).forEach(function (k) { e.setAttribute(k, attrs[k]); });
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
     return e;
   }
 
   // Distance rings (25 / 50 / 75 / 100 % of radar radius)
+  // Distance rings (25 / 50 / 75 / 100 % of radar radius)
+  var minDim = Math.min(W, H);
   for (var ri = 1; ri <= 4; ri++) {
-    svg.appendChild(el('circle', {
-      cx: W / 2, cy: H / 2,
-      r: minDim / 2 * ri / 4,
+    svg.appendChild(svgEl('circle', {
+      cx: W / 2, cy: H / 2, r: minDim / 2 * ri / 4,
       fill: 'none', stroke: 'currentColor', 'stroke-opacity': '0.12',
     }));
   }
 
   // Feeder crosshair
-  svg.appendChild(el('line', { x1: W/2 - 5, y1: H/2, x2: W/2 + 5, y2: H/2, stroke: 'currentColor', 'stroke-opacity': '0.45' }));
-  svg.appendChild(el('line', { x1: W/2, y1: H/2 - 5, x2: W/2, y2: H/2 + 5, stroke: 'currentColor', 'stroke-opacity': '0.45' }));
+  svg.appendChild(svgEl('line', { x1: W/2-5, y1: H/2, x2: W/2+5, y2: H/2, stroke: 'currentColor', 'stroke-opacity': '0.4' }));
+  svg.appendChild(svgEl('line', { x1: W/2, y1: H/2-5, x2: W/2, y2: H/2+5, stroke: 'currentColor', 'stroke-opacity': '0.4' }));
 
-  // Altitude opacity bands (ground → highest)
-  var abOpacity = [0.18, 0.32, 0.45, 0.58, 0.70, 0.82, 0.92, 1.0];
+  // Altitude → opacity
+  var abOp = [0.18, 0.32, 0.45, 0.58, 0.70, 0.82, 0.92, 1.0];
 
-  planes.forEach(function (p, idx) {
-    var cx = p.x / 100 * W;
-    var cy = p.y / 100 * H;
-    var op = abOpacity[Math.min(7, p.ab)].toFixed(2);
+  function altBand(altFt) {
+    if (altFt < 0)      return 0;
+    if (altFt >= 35000) return 7;
+    if (altFt >= 25000) return 6;
+    if (altFt >= 15000) return 5;
+    if (altFt >= 8000)  return 4;
+    if (altFt >= 4000)  return 3;
+    if (altFt >= 1000)  return 2;
+    return 1;
+  }
 
-    // Trail dots
-    if (Array.isArray(p.trail)) {
-      p.trail.forEach(function (t, ti) {
-        svg.appendChild(el('circle', {
-          cx: t[0] / 100 * W, cy: t[1] / 100 * H,
-          r: 1.5,
-          fill: 'currentColor',
-          opacity: Math.max(0.08, op - ti * 0.08),
+  ac.forEach(function (a, idx) {
+    var lat = a[6], lon = a[7];
+    var pos = ll2pct(lat, lon);
+    var cx  = pos.x / 100 * W;
+    var cy  = pos.y / 100 * H;
+    var ab  = altBand(a[2]);
+    var op  = abOp[ab].toFixed(2);
+
+    // Trail — a[8] is [[dlat,dlon],...] in 0.001° units, or null/undefined
+    var trail = Array.isArray(a[8]) ? a[8] : null;
+    if (trail) {
+      trail.forEach(function (d, ti) {
+        var tLat = lat + d[0] * 0.001;
+        var tLon = lon + d[1] * 0.001;
+        var tp   = ll2pct(tLat, tLon);
+        svg.appendChild(svgEl('circle', {
+          cx: tp.x / 100 * W, cy: tp.y / 100 * H,
+          r: 1.5, fill: 'currentColor',
+          opacity: Math.max(0.06, op - ti * 0.07),
         }));
       });
     }
 
-    // Plane dot
-    var r = p.alt === -1 ? 2 : (p.em ? 4 : 3);
-    var dot = el('circle', {
-      cx: cx, cy: cy, r: r,
-      fill: 'currentColor', opacity: op,
-    });
-    svg.appendChild(dot);
-
     // Emergency ring
-    if (p.em) {
-      svg.appendChild(el('circle', {
+    var em = a[11] || null;
+    if (em) {
+      svg.appendChild(svgEl('circle', {
         cx: cx, cy: cy, r: 7,
-        fill: 'none', stroke: 'currentColor', 'stroke-width': '1.5', opacity: '0.8',
+        fill: 'none', stroke: 'currentColor', 'stroke-width': '1.5', opacity: '0.85',
       }));
     }
 
-    // Callsign label for first 10 planes; MLAT prefix ~
-    if (p.cs && idx < 10) {
+    // Plane dot
+    svg.appendChild(svgEl('circle', {
+      cx: cx, cy: cy,
+      r: a[2] === -1 ? 2 : (em ? 4 : 3),
+      fill: 'currentColor', opacity: op,
+    }));
+
+    // Callsign label (first 10 planes; MLAT prefixed with ~)
+    var cs = a[0] || '';
+    if (cs && idx < 10) {
+      // Route is a[9] if it's a string (not null/array from absent trail)
+      var route = (typeof a[9] === 'string') ? a[9] : null;
       var lbl = document.createElementNS(ns, 'text');
-      lbl.setAttribute('x', cx + 5);
+      lbl.setAttribute('x', cx + 4);
       lbl.setAttribute('y', cy - 3);
       lbl.setAttribute('font-size', '6.5');
       lbl.setAttribute('fill', 'currentColor');
-      lbl.setAttribute('opacity', '0.7');
-      lbl.textContent = (p.src === 1 ? '~' : '') + p.cs + (p.rt ? ' ' + p.rt : '');
+      lbl.setAttribute('opacity', '0.72');
+      lbl.textContent = (a[5] === 1 ? '~' : '') + cs + (route ? ' ' + route : '');
       svg.appendChild(lbl);
     }
   });

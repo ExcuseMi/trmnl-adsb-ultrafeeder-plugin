@@ -1,69 +1,56 @@
-#
-# Changes to this file will be overwritten by `trmnlp pull`.
-#
-# Docs: https://help.trmnl.com/en/articles/10542599-importing-and-exporting-private-plugins#h_581fb988f0
-#
 ---
 strategy: webhook
 no_screen_padding: 'no'
 dark_mode: 'yes'
 static_data: ''
 polling_verb: get
+framework_version: 
+serverless_language: 
 polling_url: ''
 polling_headers: ''
 polling_body: ''
-name: ADS-B Ultrafeeder
-refresh_interval: 5
+id: 296015
 custom_fields:
-  - keyname: author_info
-    name: About ADS-B Ultrafeeder
-    field_type: author_bio
-    description: >-
-      Live aircraft radar from your own ADS-B receiver, updated every 5 minutes.
-      Pairs with <a href="https://github.com/sdr-enthusiasts/docker-adsb-ultrafeeder" target="_blank">docker-adsb-ultrafeeder</a> — no cloud API, no rate limits.
-      <br /><br /><strong>Radar</strong><br /> Aircraft dots positioned by lat/lon. Brightness reflects altitude. Trail dots show recent path. Emergency squawks flagged automatically.
-      <br /><br /><strong>Stats</strong><br /> Live aircraft count, MLAT count, max range, message rate.
-      <br /><br /><strong>Sparklines</strong><br /> Rolling history of aircraft count and max range over your configured timeframe.
-    github_url: https://github.com/ExcuseMi/trmnl-adsb-ultrafeeder-plugin
-    category: travel,environment
-    help_text: Self-hosted · No cloud API
-
-  - keyname: webhook_url
-    field_type: copyable_webhook_url
-    name: Webhook URL
-    description: >-
-      Copy this URL and set it as <code>TRMNL_WEBHOOK_URL</code> in your Docker environment.
-      The container pushes data to this address on every poll cycle.
-
-  - keyname: unit
-    field_type: select
-    name: Measurement Units
-    description: Unit system for altitude and speed display on aircraft labels.
-    options:
-      - Imperial (ft, kt): imperial
-      - Metric (m, km/h): metric
-    default: imperial
-    optional: true
-
-  - keyname: route_display
-    field_type: select
-    name: Route Label Style
-    description: How to display flight origin → destination on aircraft labels.
-    options:
-      - Airport codes (LHR>AMS): codes
-      - City names (LONDON>AMSTERDAM): cities
-      - Hide route: 'off'
-    default: codes
-    optional: true
-
-  - keyname: radar_scale
-    field_type: select
-    name: Radar Scale
-    description: Maximum range shown on the radar panel. Planes beyond this distance are shown at the edge.
-    options:
-      - 50 nm (~90 km): '50'
-      - 100 nm (~185 km): '100'
-      - 200 nm (~370 km): '200'
-      - 300 nm (~555 km): '300'
-    default: '200'
-    optional: true
+- keyname: author_info
+  name: About ADS-B Ultrafeeder
+  field_type: author_bio
+  description: Live aircraft radar from your own ADS-B receiver, updated every 5 minutes. Pairs with <a href="https://github.com/sdr-enthusiasts/docker-adsb-ultrafeeder" target="_blank">docker-adsb-ultrafeeder</a> — no cloud API, no rate limits. <br /><br /><strong>Radar</strong><br /> Aircraft dots positioned by lat/lon. Brightness reflects altitude. Trail dots show recent path. Emergency squawks flagged automatically. <br /><br /><strong>Stats</strong><br /> Live aircraft count, MLAT count, max range, message rate. <br /><br /><strong>Sparklines</strong><br /> Rolling history of aircraft count and max range over your configured timeframe.
+  github_url: https://github.com/ExcuseMi/trmnl-adsb-ultrafeeder-plugin
+  category: travel,environment
+  help_text: Self-hosted · No cloud API
+- keyname: webhook_url
+  field_type: copyable_webhook_url
+  name: Webhook URL
+  description: Copy this URL and set it as <code>TRMNL_WEBHOOK_URL</code> in your Docker environment. The container pushes data to this address on every poll cycle.
+- keyname: unit
+  field_type: select
+  name: Measurement Units
+  description: Unit system for altitude and speed display on aircraft labels.
+  options:
+  - Imperial (ft, kt): imperial
+  - Metric (m, km/h): metric
+  default: imperial
+  optional: true
+- keyname: route_display
+  field_type: select
+  name: Route Label Style
+  description: How to display flight origin → destination on aircraft labels.
+  options:
+  - Airport codes (LHR>AMS): codes
+  - City names (LONDON>AMSTERDAM): cities
+  - Hide route: 'off'
+  default: codes
+  optional: true
+- keyname: radar_scale
+  field_type: select
+  name: Radar Scale
+  description: Maximum range shown on the radar panel. Planes beyond this distance are shown at the edge.
+  options:
+  - 50 nm (~90 km): '50'
+  - 100 nm (~185 km): '100'
+  - 200 nm (~370 km): '200'
+  - 300 nm (~555 km): '300'
+  default: '200'
+  optional: true
+name: ADS-B Ultrafeeder
+refresh_interval: 15

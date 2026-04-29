@@ -15,7 +15,7 @@
 - [x] `docker-compose.yml`
 - [x] `.env.example`
 - [x] `plugin/src/settings.yml` — webhook plugin config
-- [x] `plugin/src/transform.js` — lat/lon → x/y projection, unit conversion
+- [x] `plugin/src/transform.js` — REMOVED (transform.js does not run for webhook strategy)
 - [x] `plugin/src/shared.liquid` — radar + stats + sparklines layout
 - [x] `plugin/src/full.liquid`
 - [x] `plugin/src/half_horizontal.liquid`
@@ -27,16 +27,16 @@
 - [x] `test/transform/data/sample.json`
 
 ## Not yet done
-- [ ] `trmnlp init plugin` — must be run manually to assign a plugin ID
-- [ ] `trmnlp push` — push plugin to TRMNL after init
-- [ ] Route enrichment is included (adsbdb); can be disabled via `ROUTE_DISPLAY=off`
+- [ ] `trmnlp push` — push templates to TRMNL (plugin ID 296015 assigned)
 - [ ] Docker image not yet published to ghcr.io
 - [ ] `version.json` not yet created
-- [ ] GitHub Actions workflows not yet created (latest version docker image)
+- [ ] GitHub Actions workflows not yet created
 
 ## Key decisions
 - Webhook push model: container polls ultrafeeder, pushes to TRMNL on schedule
-- No Redis — all state in-memory (deque for history, dict for aircraft)
+- No Redis — all state in-memory; history persisted to STATE_PATH via atomic JSON write
 - Route enrichment (adsbdb) included in v1, disabled with `ROUTE_DISPLAY=off`
-- transform.js computes radar x/y projection from lat/lon (no server-side calc in template)
+- transform.js removed — does not run for webhook strategy; projection done in inline template JS
+- Backend pushes fc=[lat,lon,cos_factor], hn_max, hr_max so template can project + normalize without server roundtrip
+- Radar: inline JS SVG, altitude→opacity bands, callsign labels for closest 10
 - Budget algorithm: planes sorted by distance, trails added for closest if budget allows

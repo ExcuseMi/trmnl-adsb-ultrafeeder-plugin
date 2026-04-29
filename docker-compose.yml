@@ -11,7 +11,12 @@ services:
       retries: 3
     depends_on:
       - ultrafeeder
+    volumes:
+      - trmnl-adsb-state:/data
     deploy:
       resources:
         limits:
           memory: 1g
+
+volumes:
+  trmnl-adsb-state:

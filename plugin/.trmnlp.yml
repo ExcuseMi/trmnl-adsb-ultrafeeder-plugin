@@ -25,89 +25,19 @@ variables:
         unit: imperial
         radar_scale: '200'
         route_display: codes
-  data:
-    planes:
-      - cs: 'BAW123'
-        ty: 'A320'
-        alt: 35000
-        spd: 450
-        trk: 245
-        src: 0
-        x: 44.2
-        y: 36.5
-        rt: 'LHR>AMS'
-        prog: 45
-        em: null
-        ab: 7
-        trail:
-          - [43.8, 36.9]
-          - [43.4, 37.3]
-          - [43.0, 37.7]
-      - cs: 'EZY42V'
-        ty: 'A319'
-        alt: 12000
-        spd: 380
-        trk: 178
-        src: 1
-        x: 52.4
-        y: 53.8
-        rt: null
-        prog: null
-        em: null
-        ab: 4
-        trail: null
-      - cs: ''
-        ty: 'C172'
-        alt: 2500
-        spd: 95
-        trk: 312
-        src: 0
-        x: 38.1
-        y: 39.6
-        rt: null
-        prog: null
-        em: null
-        ab: 2
-        trail: null
-      - cs: 'OPS999'
-        ty: 'B738'
-        alt: 18000
-        spd: 310
-        trk: 90
-        src: 0
-        x: 61.0
-        y: 45.0
-        rt: null
-        prog: null
-        em: '7700'
-        ab: 5
-        trail: null
-      - cs: 'DLH441'
-        ty: 'A321'
-        alt: 38000
-        spd: 480
-        trk: 60
-        src: 0
-        x: 55.5
-        y: 30.2
-        rt: 'FRA>AMS'
-        prog: 72
-        em: null
-        ab: 7
-        trail: null
-    hn: [38, 42, 35, 41, 44, 40, 37, 39, 42, 41, 38, 36, 33, 35, 38, 40, 43, 44, 42, 39, 37, 40, 42, 44]
-    hr: [180, 175, 168, 182, 190, 185, 178, 172, 180, 183, 188, 175, 170, 168, 172, 175, 180, 185, 180, 178, 175, 180, 185, 190]
-    hnBars: [86, 95, 80, 93, 100, 91, 84, 89, 95, 93, 86, 82, 75, 80, 86, 91, 98, 100, 95, 89, 84, 91, 95, 100]
-    hrBars: [95, 92, 88, 96, 100, 97, 94, 91, 95, 96, 99, 92, 89, 88, 91, 92, 95, 97, 95, 94, 92, 95, 97, 100]
-    hnMax: 44
-    hrMax: 190
-    stats:
-      total: 42
-      mlat: 8
-      range: 180
-      dayRange: 247
-      msgRate: 1250
-    fc: [51.1234, 4.5678]
-    ts: '14:32'
-    unitAlt: 'ft'
-    unitSpd: 'kt'
+  # Raw webhook variables — exactly what the backend pushes via merge_variables
+  # ac: array-of-arrays [cs, ty, alt_ft, spd_kt, trk, src, lat, lon, trail?, route?, progress?, emergency?]
+  ac:
+    - ["BAW123", "A320", 35000, 450, 245, 0, 51.16, 4.48, [[-13, -18], [-26, -36]], "LHR>AMS", 45]
+    - ["EZY42V", "A319", 12000, 380, 178, 1, 51.09, 4.60]
+    - ["", "C172", 2500, 95, 312, 0, 51.21, 4.49]
+    - ["OPS999", "B738", 18000, 310, 90, 0, 51.15, 4.62, null, null, null, "7700"]
+    - ["DLH441", "A321", 38000, 480, 60, 0, 51.08, 4.51, null, "FRA>AMS", 72]
+  hn: [38, 42, 35, 41, 44, 40, 37, 39, 42, 41, 38, 36, 33, 35, 38, 40, 43, 44, 42, 39, 37, 40, 42, 44]
+  hr: [180, 175, 168, 182, 190, 185, 178, 172, 180, 183, 188, 175, 170, 168, 172, 175, 180, 185, 180, 178, 175, 180, 185, 190]
+  hn_max: 44
+  hr_max: 190
+  s: [42, 8, 180, 247, 1250]
+  # fc: [feeder_lat, feeder_lon, cos(feeder_lat * PI/180)]
+  fc: [51.1234, 4.5678, 0.6276]
+  ts: '14:32'
