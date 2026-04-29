@@ -19,7 +19,7 @@ class AppState:
         self.hr_history: deque = deque(maxlen=max_history)
         self._day_max_range: float = 0.0
         self._day_date: str = ''
-        self.timestamp: str = '00:00'
+        self.timestamp: int = 0
         self._stats: list = [0, 0, 0, 0, 0]
         if state_path:
             self._load()
@@ -31,7 +31,7 @@ class AppState:
     def update(self, parsed: list[dict], msg_rate: int) -> None:
         now = datetime.now(timezone.utc)
         today = now.strftime('%Y-%m-%d')
-        self.timestamp = now.strftime('%H:%M')
+        self.timestamp = int(now.timestamp())
 
         if today != self._day_date:
             self._day_max_range = 0.0
