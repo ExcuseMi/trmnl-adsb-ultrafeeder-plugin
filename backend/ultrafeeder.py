@@ -76,8 +76,8 @@ def parse_aircraft(raw: list[dict], feeder_lat: float, feeder_lon: float) -> lis
         dist_nm = round(math.sqrt(dlat ** 2 + dlon ** 2) * NM_PER_DEG, 1)
 
         raw_type = (ac.get('t') or ac.get('type') or '').strip()
-        if raw_type.lower() in ('adsb_icao', 'mode_s', 'tis-b', 'ads-r'):
-            raw_type = ''
+        if raw_type.lower() in ('adsb_icao', 'mode_s', 'tis-b', 'ads-r', 'unknown', ''):
+            raw_type = ac.get('category', '')
 
         result.append({
             'hex':       ac.get('hex', ''),
