@@ -65,9 +65,10 @@ class AppState:
 
         self.hn_history.append(len(parsed))
         self.hr_history.append(int(max_range))
-        self.hm_history.append(msg_rate)
-        self.hg_history.append(gain_db)
         self._ts_history.append(self.timestamp)
+        if gain_db > 0:
+            self.hm_history.append(msg_rate)
+            self.hg_history.append(gain_db)
 
         if max_range > self._day_max_range:
             self._day_max_range = max_range
