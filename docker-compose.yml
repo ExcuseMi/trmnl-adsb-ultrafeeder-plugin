@@ -1,6 +1,6 @@
 services:
   trmnl-adsb-ultrafeeder:
-    image: ghcr.io/excusemi/trmnl-adsb-ultrafeeder-plugin:latest
+    image: ghcr.io/excusemi/trmnl-adsb-ultrafeeder:latest
     container_name: trmnl-adsb-backend
     restart: unless-stopped
     env_file: .env

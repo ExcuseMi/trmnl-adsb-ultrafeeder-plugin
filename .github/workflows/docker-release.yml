@@ -37,7 +37,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/excusemi/trmnl-adsb-ultrafeeder-plugin:latest
-            ghcr.io/excusemi/trmnl-adsb-ultrafeeder-plugin:${{ github.sha }}
+            ghcr.io/excusemi/trmnl-adsb-ultrafeeder:latest
+            ghcr.io/excusemi/trmnl-adsb-ultrafeeder:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
