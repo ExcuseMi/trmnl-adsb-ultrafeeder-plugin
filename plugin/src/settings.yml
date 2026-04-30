@@ -70,6 +70,7 @@ custom_fields:
   field_type: password
   name: Stadia Maps API Key
   description: Required for Stamen styles.<br /><br />Free account — get your key at <a href="https://client.stadiamaps.com/signup/" target="_blank">stadiamaps.com</a><br />200,000 tile credits/month included.
+  optional: true
 - keyname: center_lat
   field_type: string
   name: Radar Center Latitude
