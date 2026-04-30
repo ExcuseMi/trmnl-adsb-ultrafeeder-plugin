@@ -6,6 +6,11 @@ on:
     paths:
       - 'backend/**'
       - '.github/workflows/docker-release.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: docker-release
+  cancel-in-progress: false
 
 jobs:
   build-push:
