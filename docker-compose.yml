@@ -1,6 +1,6 @@
 services:
   trmnl-adsb-ultrafeeder:
-    build: ./trmnl-adsb-ultrafeeder-plugin/backend
+    image: ghcr.io/excusemi/trmnl-adsb-ultrafeeder-plugin:latest
     container_name: trmnl-adsb-backend
     restart: unless-stopped
     env_file: .env
@@ -13,10 +13,6 @@ services:
       - ultrafeeder
     volumes:
       - trmnl-adsb-state:/data
-    deploy:
-      resources:
-        limits:
-          memory: 1g
 
 volumes:
   trmnl-adsb-state:
