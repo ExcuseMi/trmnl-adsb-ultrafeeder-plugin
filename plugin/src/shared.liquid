@@ -140,9 +140,11 @@
     return [f[0], f[1], f[2]?+f[2]:0, f[3]?+f[3]:0, f[4]?+f[4]:0, +f[5]||0, parseFloat(f[6]), parseFloat(f[7]), f[8], f[9], f[10]];
   });
   var fc       = {{ fc | json }};
-  var unit     = '{{ trmnl.plugin_settings.custom_fields_values.unit | default: "imperial" }}';
-  var darkMode = '{{ trmnl.plugin_settings.dark_mode }}' === 'yes';
-  var view     = {{ view | default: 1 }};
+  var unit       = '{{ trmnl.plugin_settings.custom_fields_values.unit | default: "imperial" }}';
+  var darkMode   = '{{ trmnl.plugin_settings.dark_mode }}' === 'yes';
+  var tileStyle  = '{{ trmnl.plugin_settings.custom_fields_values.tile_style | default: "cartodb_dark" }}';
+  var stadiaKey  = '{{ trmnl.plugin_settings.custom_fields_values.stadia_api_key }}';
+  var view       = {{ view | default: 1 }};
 
   var feederLat = fc[0], feederLon = fc[1];
   var _cLat = parseFloat('{{ trmnl.plugin_settings.custom_fields_values.center_lat }}');
@@ -253,6 +255,7 @@
       var sym = document.createElementNS(ns, 'symbol');
       sym.setAttribute('id', 'icon-' + key + '-' + inst);
       sym.setAttribute('viewBox', icon.v);
+      sym.setAttribute('overflow', 'visible');
       var paths = icon.paths || [{ d: icon.d, f: icon.f }];
       paths.forEach(function(pd) {
         var g = document.createElementNS(ns, 'g');
@@ -319,9 +322,10 @@
         patt.setAttribute('x', px);  patt.setAttribute('y', py);
         patt.setAttribute('width', T); patt.setAttribute('height', T);
         var img = document.createElementNS(ns, 'image');
-        var url = darkMode
-          ? ('https://a.basemaps.cartocdn.com/dark_all/'  + z + '/' + tx + '/' + ty + '.png')
-          : ('https://a.basemaps.cartocdn.com/light_all/' + z + '/' + tx + '/' + ty + '.png');
+        var url = tileStyle === 'cartodb_dark' || tileStyle === 'cartodb_light'
+          ? ('https://a.basemaps.cartocdn.com/' + (tileStyle === 'cartodb_dark' ? 'dark_all' : 'light_all') + '/' + z + '/' + tx + '/' + ty + '.png')
+          : ('https://tiles.stadiamaps.com/tiles/' + tileStyle + '/' + z + '/' + tx + '/' + ty + '.png'
+              + (stadiaKey ? '?api_key=' + stadiaKey : ''));
         img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', url);
         img.setAttribute('width', T); img.setAttribute('height', T);
         patt.appendChild(img);
@@ -411,20 +415,6 @@
       return '#000000';
     }
 
-    function altPlaneColor(alt) {
-      if (alt === -1 || alt == null) return darkMode ? '#777777' : '#888888';
-      if (darkMode) {
-        if (alt < 5000)  return '#aaaaaa';
-        if (alt < 15000) return '#cccccc';
-        if (alt < 30000) return '#eeeeee';
-        return '#ffffff';
-      } else {
-        if (alt < 5000)  return '#555555';
-        if (alt < 15000) return '#333333';
-        if (alt < 30000) return '#111111';
-        return '#000000';
-      }
-    }
 
     visible.forEach(function(v) {
       var p = v.p, pos = { x: v.x, y: v.y };
@@ -448,7 +438,13 @@
       use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '#icon-'+iconKey+'-'+inst);
       use.setAttribute('width','24'); use.setAttribute('height','24');
       use.setAttribute('x','-12'); use.setAttribute('y','-12');
-      use.setAttribute('fill', altPlaneColor(p[2]));
+      use.setAttribute('fill', (function(alt) {
+        if (alt === -1 || alt == null) return '#999999';
+        if (alt < 5000)  return '#aaaaaa';
+        if (alt < 15000) return '#cccccc';
+        if (alt < 30000) return '#eeeeee';
+        return '#ffffff';
+      })(p[2]));
       use.setAttribute('stroke', 'none');
       g.appendChild(use);
       layer.appendChild(g);

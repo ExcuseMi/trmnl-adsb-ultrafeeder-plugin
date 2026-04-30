@@ -14,7 +14,7 @@ custom_fields:
 - keyname: author_info
   name: About ADS-B Ultrafeeder
   field_type: author_bio
-  description: Live aircraft radar from your own ADS-B receiver, updated every 5 minutes. Pairs with <a href="https://github.com/sdr-enthusiasts/docker-adsb-ultrafeeder" target="_blank">docker-adsb-ultrafeeder</a> — no cloud API, no rate limits. <br /><br /><strong>Radar</strong><br /> Aircraft dots positioned by lat/lon. Brightness reflects altitude. Trail dots show recent path. Emergency squawks flagged automatically. <br /><br /><strong>Stats</strong><br /> Live aircraft count, MLAT count, max range, message rate. <br /><br /><strong>Sparklines</strong><br /> Rolling history of aircraft count and max range over your configured timeframe.
+  description: Live aircraft radar from your own ADS-B receiver, updated every 5 minutes. Pairs with <a href="https://github.com/sdr-enthusiasts/docker-adsb-ultrafeeder" target="_blank">docker-adsb-ultrafeeder</a> — no cloud API, no rate limits. <br /><br /><strong>Radar</strong><br /> Aircraft dots positioned by lat/lon. Trail dots show recent path. Emergency squawks flagged automatically. <br /><br /><strong>Stats</strong><br /> Live aircraft count, MLAT count, max range, message rate. <br /><br /><strong>Sparklines</strong><br /> Rolling history of aircraft count and max range over your configured timeframe.
   github_url: https://github.com/ExcuseMi/trmnl-adsb-ultrafeeder-plugin
   category: travel,environment
   help_text: Self-hosted · No cloud API
@@ -42,6 +42,35 @@ custom_fields:
   - 300 nm (~555 km): '300'
   default: '200'
   optional: true
+- keyname: tile_style
+  field_type: select
+  name: Map Style
+  description: 'Tile provider for the radar background map.<br /><br /> <strong>Free (CartoDB)</strong> — no account needed, light/dark follows your display setting.<br /> <strong>Stamen styles</strong> — high-contrast monochrome tiles optimised for e-ink. Requires a free <a href="https://client.stadiamaps.com/signup/" target="_blank">Stadia Maps</a> API key (200,000 tile credits/month free; personal use only). Enter your key in the <em>Stadia Maps API Key</em> field below.
+
+    '
+  options:
+  - 'Free: CartoDB Dark': cartodb_dark
+  - 'Free: CartoDB Light': cartodb_light
+  - 'Stamen: Toner (B&W)': stamen_toner
+  - 'Stamen: Toner Lite': stamen_toner_lite
+  - 'Stamen: Toner Dark': stamen_toner_dark
+  - 'Stamen: Toner Blacklite': stamen_toner_blacklite
+  - 'Stamen: Toner Background (no labels)': stamen_toner_background
+  - 'Stamen: Terrain': stamen_terrain
+  - 'Stamen: Watercolor': stamen_watercolor
+  default: cartodb_dark
+  optional: true
+  conditional_validation:
+  - when: cartodb_dark
+    hidden:
+    - stadia_api_key
+  - when: cartodb_light
+    hidden:
+    - stadia_api_key
+- keyname: stadia_api_key
+  field_type: password
+  name: Stadia Maps API Key
+  description: Required when using any Stamen style. Get a free key at <a href="https://client.stadiamaps.com/signup/" target="_blank">stadiamaps.com</a> — 200,000 tile credits/month included.
 - keyname: center_lat
   field_type: string
   name: Radar Center Latitude
