@@ -4,8 +4,8 @@ no_screen_padding: 'no'
 dark_mode: 'yes'
 static_data: ''
 polling_verb: get
-framework_version: 
-serverless_language: 
+framework_version: 3.1.0
+serverless_language: ''
 polling_url: ''
 polling_headers: ''
 polling_body: ''
@@ -31,16 +31,6 @@ custom_fields:
   - Metric (m, km/h): metric
   default: imperial
   optional: true
-- keyname: route_display
-  field_type: select
-  name: Route Label Style
-  description: How to display flight origin → destination on aircraft labels.
-  options:
-  - Airport codes (LHR>AMS): codes
-  - City names (LONDON>AMSTERDAM): cities
-  - Hide route: 'off'
-  default: codes
-  optional: true
 - keyname: radar_scale
   field_type: select
   name: Radar Scale
@@ -63,6 +53,15 @@ custom_fields:
   name: Radar Center Longitude
   description: Longitude to center the radar map on. Leave blank to use your feeder position.
   help_text: Find coordinates at <a href="https://www.latlong.net/" target="_blank">latlong.net</a>
+  optional: true
+- keyname: show_feeder_icon
+  field_type: select
+  name: Feeder Icon
+  description: Show or hide the house icon marking your feeder position on the radar.
+  options:
+  - Show: 'yes'
+  - Hide: 'no'
+  default: 'yes'
   optional: true
 name: ADS-B Ultrafeeder
 refresh_interval: 15
