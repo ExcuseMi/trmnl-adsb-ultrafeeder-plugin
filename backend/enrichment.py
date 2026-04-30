@@ -1,7 +1,9 @@
 import asyncio
-import re
-import time
+import json
 import logging
+import re
+import sqlite3
+import time
 import aiohttp
 
 log = logging.getLogger(__name__)
@@ -10,14 +12,78 @@ ADSBDB_CALLSIGN = 'https://api.adsbdb.com/v0/callsign/'
 ADSBDB_AIRCRAFT = 'https://api.adsbdb.com/v0/aircraft/'
 TTL = 4 * 3600
 
-_route_cache: dict[str, tuple] = {}  # callsign -> (route_or_None, expires_at)
-_ac_cache: dict[str, tuple] = {}     # hex -> (type_or_None, expires_at)
+_db: sqlite3.Connection | None = None
 _backoff_until: float = 0.0
 _sem: asyncio.Semaphore | None = None
 
 
+def init_cache(db_path: str) -> None:
+    global _db
+    _db = sqlite3.connect(db_path, check_same_thread=False)
+    _db.execute('PRAGMA journal_mode=WAL')
+    _db.execute('''CREATE TABLE IF NOT EXISTS route_cache (
+        callsign TEXT PRIMARY KEY,
+        data     TEXT,
+        expires  REAL NOT NULL
+    )''')
+    _db.execute('''CREATE TABLE IF NOT EXISTS ac_cache (
+        hex         TEXT PRIMARY KEY,
+        icao_type   TEXT,
+        description TEXT,
+        expires     REAL NOT NULL
+    )''')
+    now = time.time()
+    _db.execute('DELETE FROM route_cache WHERE expires < ?', (now,))
+    _db.execute('DELETE FROM ac_cache WHERE expires < ?', (now,))
+    _db.commit()
+    rc = _db.execute('SELECT COUNT(*) FROM route_cache').fetchone()[0]
+    ac = _db.execute('SELECT COUNT(*) FROM ac_cache').fetchone()[0]
+    log.info('enrichment cache: %d routes, %d aircraft loaded from %s', rc, ac, db_path)
+
+
+def _get_route(callsign: str):
+    if _db is None:
+        return None, 0
+    row = _db.execute(
+        'SELECT data, expires FROM route_cache WHERE callsign = ?', (callsign,)
+    ).fetchone()
+    if row:
+        return (json.loads(row[0]) if row[0] else None), row[1]
+    return None, 0
+
+
+def _set_route(callsign: str, data, expires: float) -> None:
+    if _db is None:
+        return
+    _db.execute(
+        'INSERT OR REPLACE INTO route_cache (callsign, data, expires) VALUES (?, ?, ?)',
+        (callsign, json.dumps(data) if data is not None else None, expires),
+    )
+    _db.commit()
+
+
+def _get_ac(hex_code: str):
+    if _db is None:
+        return None, 0
+    row = _db.execute(
+        'SELECT icao_type, description, expires FROM ac_cache WHERE hex = ?', (hex_code,)
+    ).fetchone()
+    if row:
+        return (row[0], row[1]), row[2]
+    return None, 0
+
+
+def _set_ac(hex_code: str, icao_type, description, expires: float) -> None:
+    if _db is None:
+        return
+    _db.execute(
+        'INSERT OR REPLACE INTO ac_cache (hex, icao_type, description, expires) VALUES (?, ?, ?, ?)',
+        (hex_code, icao_type, description, expires),
+    )
+    _db.commit()
+
+
 def _valid(cs: str) -> bool:
-    # Broadened: Allow 1-5 letters (registrations) or standard airline codes
     return bool(cs and len(cs) >= 3 and re.match(r'^[A-Z]{1,5}', cs))
 
 
@@ -39,8 +105,8 @@ async def _fetch_route(cs: str, session: aiohttp.ClientSession) -> dict | None:
     if time.monotonic() < _backoff_until:
         return None
 
-    cached, expires = _route_cache.get(cs, (None, 0))
-    if time.monotonic() < expires:
+    cached, expires = _get_route(cs)
+    if time.time() < expires:
         return cached
 
     try:
@@ -57,18 +123,17 @@ async def _fetch_route(cs: str, session: aiohttp.ClientSession) -> dict | None:
                 if resp.status == 200:
                     fr = (await resp.json()).get('response', {}).get('flightroute')
                     route = {'origin': fr.get('origin') or {}, 'destination': fr.get('destination') or {}} if fr else None
-                    _route_cache[cs] = (route, time.monotonic() + TTL)
+                    _set_route(cs, route, time.time() + TTL)
                     if route:
                         log.info('enriched route: %s', cs)
                     return route
-                _route_cache[cs] = (None, time.monotonic() + TTL)
+                _set_route(cs, None, time.time() + TTL)
     except Exception as exc:
         log.debug('adsbdb route %s: %s', cs, exc)
     return None
 
 
 async def _fetch_ac(hex_code: str, session: aiohttp.ClientSession) -> tuple[str | None, str | None]:
-    """Returns (icao_type, description)."""
     global _backoff_until, _sem
     if _sem is None:
         _sem = asyncio.Semaphore(3)
@@ -77,9 +142,9 @@ async def _fetch_ac(hex_code: str, session: aiohttp.ClientSession) -> tuple[str 
     if time.monotonic() < _backoff_until:
         return None, None
 
-    cached, expires = _ac_cache.get(hex_code, (None, 0))
-    if time.monotonic() < expires:
-        return cached  # stored as (type, desc) tuple
+    cached, expires = _get_ac(hex_code)
+    if time.time() < expires:
+        return cached  # (icao_type, desc) — both may be None
 
     try:
         async with _sem:
@@ -103,12 +168,11 @@ async def _fetch_ac(hex_code: str, session: aiohttp.ClientSession) -> tuple[str 
                         desc = model or manufacturer or None
                     if desc:
                         desc = desc[:32]
-                    result = (icao_type, desc)
-                    _ac_cache[hex_code] = (result, time.monotonic() + TTL)
+                    _set_ac(hex_code, icao_type, desc, time.time() + TTL)
                     if icao_type:
                         log.info('enriched type: %s -> %s (%s)', hex_code, icao_type, desc)
-                    return result
-                _ac_cache[hex_code] = ((None, None), time.monotonic() + TTL)
+                    return icao_type, desc
+                _set_ac(hex_code, None, None, time.time() + TTL)
     except Exception as exc:
         log.debug('adsbdb ac %s: %s', hex_code, exc)
     return None, None
@@ -138,7 +202,6 @@ async def enrich(aircraft: list[dict], mode: str, session: aiohttp.ClientSession
     if not aircraft:
         return
 
-    # 1. Enrichment tasks
     route_tasks = []
     ac_tasks = []
 
@@ -153,16 +216,13 @@ async def enrich(aircraft: list[dict], mode: str, session: aiohttp.ClientSession
             ac_tasks.append(_fetch_ac(a['hex'], session))
         else:
             ac_tasks.append(asyncio.sleep(0, result=None))
-        
-        # Small stagger to prevent burst
+
         await asyncio.sleep(0.1)
 
-    # 2. Execute
     results = await asyncio.gather(*(route_tasks + ac_tasks), return_exceptions=True)
     routes = results[:len(aircraft)]
     ac_types = results[len(aircraft):]
 
-    # 3. Apply
     for plane, route, ac_type in zip(aircraft, routes, ac_types):
         if route and not isinstance(route, Exception):
             origin, dest = _origin_dest(route, mode)

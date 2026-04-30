@@ -7,7 +7,7 @@ from quart import Quart, jsonify
 from state import AppState
 from serializer import build_payload
 from ultrafeeder import fetch_aircraft, fetch_stats, parse_aircraft, parse_rf_stats
-from enrichment import enrich
+from enrichment import enrich, init_cache
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s %(message)s')
 log = logging.getLogger(__name__)
@@ -23,6 +23,7 @@ POLL_INTERVAL       = int(os.getenv('POLL_INTERVAL_SECONDS', '300'))
 HISTORY_TIMEFRAME   = os.getenv('HISTORY_TIMEFRAME', '2h')
 ROUTE_DISPLAY       = os.getenv('ROUTE_DISPLAY', 'codes')
 STATE_PATH          = os.getenv('STATE_PATH', '/data/state.json')
+CACHE_PATH          = os.getenv('CACHE_PATH', '/data/enrichment.db')
 
 _state: AppState | None = None
 _last_poll: float = 0.0
@@ -91,6 +92,7 @@ async def startup() -> None:
     global _state
     tf_s = _parse_timeframe(HISTORY_TIMEFRAME)
     max_points = max(1, tf_s // POLL_INTERVAL)
+    init_cache(CACHE_PATH)
     _state = AppState(FEEDER_LAT, FEEDER_LON, max_points, STATE_PATH)
     log.info(
         'start: feeder=(%s,%s) tier=%s interval=%ds history=%d pts',
