@@ -194,7 +194,7 @@
   }
 
   function formatAltitude(val) {
-    if (val == null || val === -1) return val === -1 ? 'GND' : '—';
+    if (val == null || val === 0 || val === -1) return val === -1 ? 'GND' : '—';
     var n = Math.round(+val);
     if (unit === 'imperial') { return n >= 1000 ? (Math.round(n/100)/10) + 'k ft' : n + ' ft'; }
     var m = Math.round(n * 0.3048);
