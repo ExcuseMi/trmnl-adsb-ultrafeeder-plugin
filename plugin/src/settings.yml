@@ -45,9 +45,12 @@ custom_fields:
 - keyname: tile_style
   field_type: select
   name: Map Style
-  description: 'Tile provider for the radar background map.<br /><br /> <strong>Free (CartoDB)</strong> — no account needed, light/dark follows your display setting.<br /> <strong>Stamen styles</strong> — high-contrast monochrome tiles optimised for e-ink. Requires a free <a href="https://client.stadiamaps.com/signup/" target="_blank">Stadia Maps</a> API key (200,000 tile credits/month free; personal use only). Enter your key in the <em>Stadia Maps API Key</em> field below.
-
-    '
+  description: >-
+    <strong>Free (CartoDB)</strong> — no account needed. Light or dark follows your display setting.<br /><br />
+    <strong>Stamen styles</strong> — high-contrast monochrome tiles optimised for e-ink.
+    A free <a href="https://client.stadiamaps.com/signup/" target="_blank">Stadia Maps</a> API key is required
+    (free account, 200,000 tile credits/month included).
+  help_text: '<a href="https://docs.stadiamaps.com/themes/" target="_blank">Preview all map styles →</a>'
   options:
   - 'Free: CartoDB Dark': cartodb_dark
   - 'Free: CartoDB Light': cartodb_light
@@ -70,7 +73,7 @@ custom_fields:
 - keyname: stadia_api_key
   field_type: password
   name: Stadia Maps API Key
-  description: Required when using any Stamen style. Get a free key at <a href="https://client.stadiamaps.com/signup/" target="_blank">stadiamaps.com</a> — 200,000 tile credits/month included.
+  description: Required for Stamen styles. Free account — get your key at <a href="https://client.stadiamaps.com/signup/" target="_blank">stadiamaps.com</a> — 200,000 tile credits/month included.
 - keyname: center_lat
   field_type: string
   name: Radar Center Latitude
